@@ -1,0 +1,30 @@
+[
+  {
+    "id": "deadline-1",
+    "date": "Tomorrow",
+    "title": "Send client report",
+    "source": "Email",
+    "priority": "HIGH"
+  },
+  {
+    "id": "deadline-2",
+    "date": "12 Jun",
+    "title": "Complete testing",
+    "source": "Jira: ANZ-231",
+    "priority": "HIGH"
+  },
+  {
+    "id": "deadline-3",
+    "date": "13 Jun",
+    "title": "Project status update",
+    "source": "Excel file",
+    "priority": "MEDIUM"
+  },
+  {
+    "id": "deadline-4",
+    "date": "15 Jun",
+    "title": "Documentation review",
+    "source": "Internal task",
+    "priority": "LOW"
+  }
+]

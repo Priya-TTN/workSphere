@@ -1,0 +1,46 @@
+[
+  {
+    "id": "plan-1",
+    "startTime": "09:00",
+    "endTime": "09:45",
+    "title": "Work on ANZ-342",
+    "subtitle": "Production payment issue",
+    "source": "Jira",
+    "priority": "HIGH"
+  },
+  {
+    "id": "plan-2",
+    "startTime": "09:45",
+    "endTime": "10:30",
+    "title": "Prepare client report",
+    "subtitle": "Requested via email",
+    "source": "Email",
+    "priority": "HIGH"
+  },
+  {
+    "id": "plan-3",
+    "startTime": "10:30",
+    "endTime": "11:30",
+    "title": "Client Sync Meeting",
+    "subtitle": "Microsoft Teams",
+    "source": "Meeting"
+  },
+  {
+    "id": "plan-4",
+    "startTime": "11:30",
+    "endTime": "12:30",
+    "title": "Review Excel data",
+    "subtitle": "Project status report",
+    "source": "Excel",
+    "priority": "MEDIUM"
+  },
+  {
+    "id": "plan-5",
+    "startTime": "14:00",
+    "endTime": "15:00",
+    "title": "Update documentation",
+    "subtitle": "Internal task",
+    "source": "Internal",
+    "priority": "LOW"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "excel-1",
+    "name": "Project_Status_Report_Q2.xlsx",
+    "lastModified": "2025-06-09T17:00:00",
+    "needsReview": true,
+    "description": "Quarterly project status report - needs review before submission"
+  },
+  {
+    "id": "excel-2",
+    "name": "Budget_Tracker_2025.xlsx",
+    "lastModified": "2025-06-08T10:00:00",
+    "needsReview": false,
+    "description": "Annual budget tracking spreadsheet"
+  }
+]

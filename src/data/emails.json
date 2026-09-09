@@ -1,0 +1,70 @@
+[
+  {
+    "id": "email-201",
+    "from": "Client - Sarah Mitchell",
+    "subject": "Payment failure - urgent",
+    "preview": "Client reported payment failure. Please investigate ASAP.",
+    "receivedAt": "2025-06-10T08:15:00",
+    "needsAction": true,
+    "priority": "HIGH",
+    "linkedTaskId": "ANZ-342"
+  },
+  {
+    "id": "email-202",
+    "from": "Client - Sarah Mitchell",
+    "subject": "Updated report request",
+    "preview": "Please share the updated report by end of day tomorrow.",
+    "receivedAt": "2025-06-10T07:30:00",
+    "needsAction": true,
+    "priority": "HIGH",
+    "linkedTaskId": "task-2"
+  },
+  {
+    "id": "email-203",
+    "from": "Vendor - TechSupply Co",
+    "subject": "Licensing terms inquiry",
+    "preview": "Following up on our licensing discussion from last week.",
+    "receivedAt": "2025-06-09T16:00:00",
+    "needsAction": true,
+    "priority": "LOW",
+    "linkedTaskId": "task-9"
+  },
+  {
+    "id": "email-204",
+    "from": "Manager - Priya Gupta",
+    "subject": "Weekly status reminder",
+    "preview": "Reminder to submit your weekly status update by Friday.",
+    "receivedAt": "2025-06-09T14:00:00",
+    "needsAction": false,
+    "priority": "MEDIUM"
+  },
+  {
+    "id": "email-205",
+    "from": "Security Team",
+    "subject": "Security audit findings",
+    "preview": "Please review and respond to the attached audit findings.",
+    "receivedAt": "2025-06-09T11:00:00",
+    "needsAction": true,
+    "priority": "MEDIUM",
+    "linkedTaskId": "task-13"
+  },
+  {
+    "id": "email-206",
+    "from": "HR - Onboarding",
+    "subject": "New hire orientation schedule",
+    "preview": "The orientation for new hires is scheduled for next Monday.",
+    "receivedAt": "2025-06-08T10:00:00",
+    "needsAction": false,
+    "priority": "LOW"
+  },
+  {
+    "id": "email-207",
+    "from": "Client - Sarah Mitchell",
+    "subject": "Meeting confirmation",
+    "preview": "Looking forward to our sync at 10:30 AM today.",
+    "receivedAt": "2025-06-10T06:00:00",
+    "needsAction": false,
+    "priority": "MEDIUM",
+    "linkedTaskId": "ANZ-342"
+  }
+]

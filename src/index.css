@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-900: #0f172a;
+  --color-navy-800: #1e293b;
+  --color-navy-700: #1a2744;
+  --color-navy-600: #243352;
+  --color-purple-500: #8b5cf6;
+  --color-purple-600: #7c3aed;
+  --color-purple-700: #6d28d9;
+  --color-purple-50: #f5f3ff;
+  --color-purple-100: #ede9fe;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-red-500: #ef4444;
+  --color-red-50: #fef2f2;
+  --color-amber-500: #f59e0b;
+  --color-amber-50: #fffbeb;
+  --color-green-500: #22c55e;
+  --color-green-50: #f0fdf4;
+  --color-blue-500: #3b82f6;
+  --color-blue-50: #eff6ff;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-slate-200;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-700 font-sans antialiased m-0;
+    font-family: var(--font-sans);
+  }
+
+  #root {
+    @apply min-h-screen w-full;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  .dashboard-card {
+    @apply rounded-2xl border border-slate-200/80 bg-white;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 14px rgba(15, 23, 42, 0.03);
+  }
+
+  .dashboard-card-header {
+    @apply flex items-center justify-between mb-4;
+  }
+
+  .dashboard-card-title {
+    @apply text-[15px] font-semibold text-slate-900 tracking-tight leading-none;
+  }
+
+  .dashboard-link {
+    @apply text-[11px] font-medium text-purple-600 hover:text-purple-700 transition-colors whitespace-nowrap;
+  }
+}
