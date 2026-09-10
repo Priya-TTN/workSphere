@@ -148,15 +148,38 @@ async function handleGmailFetch(req: IncomingMessage, res: ServerResponse) {
     } catch {
       // ignore
     }
-    const raw = err instanceof Error ? err.message : 'Unknown IMAP error'
+    const raw = err instanceof Error ? err.message : String(err)
+    console.error('[Gmail IMAP Fetch Error]:', raw)
+
     const lower = raw.toLowerCase()
     let error = 'Could not connect to Gmail. Check IMAP is enabled and use a Google App Password.'
-    if (lower.includes('authentication') || lower.includes('invalid credentials') || lower.includes('login')) {
+
+    if (
+      lower.includes('auth') ||
+      lower.includes('invalid credentials') ||
+      lower.includes('login') ||
+      lower.includes('denied') ||
+      lower.includes('password') ||
+      lower.includes('bad') ||
+      lower.includes('no [')
+    ) {
       error =
-        'Gmail rejected the login. Use a Google App Password (not your account password), and turn IMAP on in Gmail settings.'
-    } else if (lower.includes('enotfound') || lower.includes('eai_again') || lower.includes('timed out')) {
-      error = 'Could not reach imap.gmail.com. Check your network or VPN, then try again.'
+        'Gmail rejected the IMAP login. Ensure 2-Step Verification is active, IMAP is enabled in Gmail Settings, and you are using a 16-character App Password (not your main Google password).'
+    } else if (
+      lower.includes('enotfound') ||
+      lower.includes('eai_again') ||
+      lower.includes('timed out') ||
+      lower.includes('timeout') ||
+      lower.includes('econnrefused') ||
+      lower.includes('closed') ||
+      lower.includes('network') ||
+      lower.includes('socket')
+    ) {
+      error = 'Could not reach imap.gmail.com (Port 993). Check your network, firewall, or VPN connection.'
+    } else if (raw) {
+      error = `Gmail IMAP error: ${raw}`
     }
+
     sendJson(res, 502, { error })
   }
 }
