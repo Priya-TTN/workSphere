@@ -26,15 +26,15 @@ export function UserMenu({ user: userProp }: UserMenuProps = {}) {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button className="flex items-center gap-3 rounded-lg px-2.5 py-1.5 hover:bg-slate-100 transition-colors">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-xs font-semibold text-white">
+        <button className="flex items-center gap-3.5 rounded-xl px-3 py-1.5 hover:bg-slate-100/80 transition-colors">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-600 text-xs font-semibold text-white shadow-sm shrink-0">
             {avatar}
           </div>
           <div className="hidden md:block text-left">
-            <p className="text-sm font-medium text-slate-800 leading-tight">{name}</p>
-            <p className="text-[11px] text-slate-500">{role}</p>
+            <p className="text-sm font-semibold text-slate-800 leading-tight">{name}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">{role}</p>
           </div>
-          <ChevronDown className="h-4 w-4 text-slate-400 hidden md:block" />
+          <ChevronDown className="h-4 w-4 text-slate-400 hidden md:block ml-1" />
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
