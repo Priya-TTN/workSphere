@@ -61,7 +61,12 @@ export function parseGmailFeedUrl(raw: string): { email: string; appPassword: st
     lowerEmail.includes('youremail') ||
     lowerEmail.includes('example.com')
   ) {
-    throw new Error('Replace "you@email.com" in the URL with your actual email address (e.g. harsh.vardhan1@tothenew.com).')
+    throw new Error('Replace "you@email.com" in the URL with your actual email address (e.g. hv56845@gmail.com).')
+  }
+
+  if (lowerEmail.endsWith('@email.com') || lowerEmail.endsWith('@mail.com')) {
+    const suggested = email.replace(/@(email|mail)\.com$/i, '@gmail.com')
+    throw new Error(`The domain "@${email.split('@')[1]}" looks like a typo. Did you mean "${suggested}"?`)
   }
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
