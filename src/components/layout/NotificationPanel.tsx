@@ -61,7 +61,7 @@ export function NotificationPanel({
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-xl z-50"
+      className="fixed inset-x-4 top-[68px] sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 rounded-xl border border-slate-200 bg-white shadow-xl z-50"
     >
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
         <h3 className="text-sm font-semibold text-slate-800">
