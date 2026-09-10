@@ -10,7 +10,6 @@ import {
   CalendarDays,
   ExternalLink,
   Save,
-  Download,
 } from 'lucide-react'
 import calendarData from '@/data/calendar.json'
 import type { CalendarEvent } from '@/types'
@@ -46,38 +45,6 @@ function formatDisplayDate(date: Date): string {
 
 function formatShortDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function downloadIcsRange(events: GoogleCalendarEvent[], start: Date, end: Date) {
-  let icsContent = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//WorkPilot AI//EN\n'
-  for (const event of events) {
-    icsContent += 'BEGIN:VEVENT\n'
-    icsContent += `SUMMARY:${event.summary || 'Event'}\n`
-    if (event.start.dateTime) {
-      icsContent += `DTSTART:${event.start.dateTime.replace(/[-:]/g, '')}\n`
-    } else if (event.start.date) {
-      icsContent += `DTSTART;VALUE=DATE:${event.start.date.replace(/-/g, '')}\n`
-    }
-    if (event.end.dateTime) {
-      icsContent += `DTEND:${event.end.dateTime.replace(/[-:]/g, '')}\n`
-    } else if (event.end.date) {
-      icsContent += `DTEND;VALUE=DATE:${event.end.date.replace(/-/g, '')}\n`
-    }
-    if (event.description) icsContent += `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}\n`
-    if (event.location) icsContent += `LOCATION:${event.location}\n`
-    icsContent += 'END:VEVENT\n'
-  }
-  icsContent += 'END:VCALENDAR\n'
-
-  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `workpilot-calendar-${toDateString(start)}-to-${toDateString(end)}.ics`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
 }
 
 // ─── Event card ───────────────────────────────────────────────────────────────
@@ -168,9 +135,8 @@ export function CalendarPage() {
 
   const handleSaveRange = () => {
     saveRange(rangeStart, rangeEnd)
-    downloadIcsRange(events, rangeStart, rangeEnd)
     setToastMessage(
-      `Saved calendar range: ${formatShortDate(rangeStart)} to ${formatShortDate(rangeEnd)} (${events.length} events exported)`
+      `Saved date range: ${formatShortDate(rangeStart)} to ${formatShortDate(rangeEnd)}`
     )
   }
 
@@ -304,8 +270,7 @@ export function CalendarPage() {
                 </span>
                 <Button size="sm" onClick={handleSaveRange} className="gap-1.5">
                   <Save className="h-3.5 w-3.5" />
-                  <Download className="h-3.5 w-3.5" />
-                  Save Range & Export
+                  Save Range
                 </Button>
               </div>
             </div>
