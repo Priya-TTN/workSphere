@@ -1,0 +1,163 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+import { getAIResponse } from '@/services/aiSearch'
+import { chatWithLlm } from '@/services/ai/llmClient'
+import { WORKPILOT_SYSTEM_PROMPT, buildWorkContextPrompt, type WorkSnapshot } from '@/services/ai/contextEngine'
+import { mockEmailsToRecords, mockEventsToGoogle } from '@/services/ai/workSnapshot'
+import { useApp } from '@/context/AppContext'
+import { useGmail } from '@/context/GmailContext'
+import { useGoogleCalendar } from '@/context/GoogleCalendarContext'
+import { useLlm } from '@/context/LlmContext'
+import deadlinesData from '@/data/deadlines.json'
+import emailsData from '@/data/emails.json'
+import jiraData from '@/data/jira.json'
+import teamsData from '@/data/teams.json'
+import calendarData from '@/data/calendar.json'
+import type { CalendarEvent, Deadline, Email, JiraTicket, TeamsMessage } from '@/types'
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  items?: string[]
+}
+
+function greeting(isConfigured: boolean) {
+  return isConfigured
+    ? 'I am connected to your LLM and can reason over Gmail, Calendar, Jira, Teams, and tasks. What do you need?'
+    : 'Add your LLM API URL on the AI Model page so I can reason over your real work data. Until then I will use the built-in assistant.'
+}
+
+interface WorkPilotChatContextType {
+  messages: ChatMessage[]
+  input: string
+  setInput: (value: string) => void
+  loading: boolean
+  isConfigured: boolean
+  sendMessage: (userMsg: string) => Promise<void>
+}
+
+const WorkPilotChatContext = createContext<WorkPilotChatContextType | null>(null)
+
+export function WorkPilotChatProvider({ children }: { children: ReactNode }) {
+  const { activities, tasks } = useApp()
+  const { messages: inbox, isConnected: gmailConnected } = useGmail()
+  const { events: liveEvents, todayEvents, isConnected: calendarConnected } = useGoogleCalendar()
+  const { settings, isConfigured } = useLlm()
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { role: 'assistant', content: greeting(isConfigured) },
+  ])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
+
+  const snapshot = useMemo<WorkSnapshot>(() => {
+    const calendarEvents =
+      calendarConnected && (liveEvents.length > 0 || todayEvents.length > 0)
+        ? liveEvents.length > 0
+          ? liveEvents
+          : todayEvents
+        : mockEventsToGoogle(calendarData as CalendarEvent[])
+    return {
+      now: new Date().toISOString(),
+      gmailConnected,
+      calendarConnected,
+      emails: gmailConnected && inbox.length > 0 ? inbox : mockEmailsToRecords(emailsData as Email[]),
+      events: calendarEvents,
+      tasks,
+      jira: jiraData as JiraTicket[],
+      teams: teamsData as TeamsMessage[],
+      deadlines: deadlinesData as Deadline[],
+      activities,
+    }
+  }, [activities, calendarConnected, gmailConnected, inbox, liveEvents, tasks, todayEvents])
+
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length !== 1 || prev[0].role !== 'assistant') return prev
+      const next = greeting(isConfigured)
+      if (prev[0].content === next) return prev
+      return [{ role: 'assistant', content: next }]
+    })
+  }, [isConfigured])
+
+  const sendMessage = useCallback(
+    async (userMsg: string) => {
+      const trimmed = userMsg.trim()
+      if (!trimmed || loading) return
+      setInput('')
+      const history: ChatMessage[] = [...messagesRef.current, { role: 'user', content: trimmed }]
+      setMessages(history)
+      setLoading(true)
+      try {
+        if (isConfigured) {
+          const context = buildWorkContextPrompt(snapshot)
+          const llmMessages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+            { role: 'system', content: `${WORKPILOT_SYSTEM_PROMPT}\n\n${context}` },
+            ...history
+              .filter((msg) => msg.role === 'user' || msg.role === 'assistant')
+              .slice(-8)
+              .map((msg) => ({ role: msg.role, content: msg.content })),
+          ]
+          const content = await chatWithLlm(settings, llmMessages)
+          setMessages((prev) => [...prev, { role: 'assistant', content }])
+        } else {
+          const result = getAIResponse(
+            trimmed,
+            snapshot.deadlines,
+            snapshot.activities,
+            snapshot.tasks,
+            snapshot.emails,
+            snapshot.events
+          )
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: result.answer,
+              items:
+                result.type === 'list'
+                  ? result.items
+                  : result.type === 'activity'
+                    ? result.activities?.map((activity) => `${activity.source}: ${activity.title}`)
+                    : undefined,
+            },
+          ])
+        }
+      } catch (err) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: err instanceof Error ? err.message : 'The assistant could not complete that request.',
+          },
+        ])
+      } finally {
+        setLoading(false)
+      }
+    },
+    [isConfigured, loading, settings, snapshot]
+  )
+
+  return (
+    <WorkPilotChatContext.Provider
+      value={{ messages, input, setInput, loading, isConfigured, sendMessage }}
+    >
+      {children}
+    </WorkPilotChatContext.Provider>
+  )
+}
+
+export function useWorkPilotChat() {
+  const ctx = useContext(WorkPilotChatContext)
+  if (!ctx) throw new Error('useWorkPilotChat must be used within WorkPilotChatProvider')
+  return ctx
+}
