@@ -2,9 +2,10 @@ import type { IncomingMessage, ServerResponse } from 'http'
 import type { Plugin } from 'vite'
 
 function normalizeGooglePath(pathStr: string): string {
-  let decoded = pathStr
+  const clean = pathStr.replace(/^\/+/, '/')
+  let decoded = clean
   try {
-    decoded = decodeURIComponent(pathStr)
+    decoded = decodeURIComponent(clean)
   } catch {}
   return decoded.replace(/@/g, '%40').replace(/#/g, '%23')
 }
@@ -39,6 +40,7 @@ async function handleGoogleIcalProxy(req: IncomingMessage, res: ServerResponse) 
   }
 
   const targetUrl = `https://calendar.google.com${pathname}${search}`
+  console.log('[Google iCal Proxy Fetching]:', targetUrl)
 
   try {
     const googleRes = await fetch(targetUrl, {
@@ -51,6 +53,7 @@ async function handleGoogleIcalProxy(req: IncomingMessage, res: ServerResponse) 
     })
 
     if (!googleRes.ok) {
+      console.error('[Google iCal Proxy HTTP Error]:', googleRes.status, targetUrl)
       res.statusCode = googleRes.status
       res.setHeader('Content-Type', 'application/json')
       res.end(
@@ -64,6 +67,7 @@ async function handleGoogleIcalProxy(req: IncomingMessage, res: ServerResponse) 
     const text = await googleRes.text()
 
     if (!text.includes('BEGIN:VCALENDAR')) {
+      console.error('[Google iCal Proxy Invalid Content]:', targetUrl)
       res.statusCode = 422
       res.setHeader('Content-Type', 'application/json')
       res.end(
@@ -79,7 +83,7 @@ async function handleGoogleIcalProxy(req: IncomingMessage, res: ServerResponse) 
     res.end(text)
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err)
-    console.error('[googleIcalProxy error]:', detail)
+    console.error('[Google iCal Proxy Catch Error]:', detail, targetUrl)
     res.statusCode = 502
     res.setHeader('Content-Type', 'application/json')
     res.end(

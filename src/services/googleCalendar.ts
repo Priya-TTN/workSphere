@@ -131,19 +131,11 @@ export async function fetchIcsFeed(icalUrl: string): Promise<string> {
   const corsProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(normalized)}`
 
   // 1. Primary: Try dev server proxy
+  let primaryError: Error | null = null
   try {
     return await trySingleFetch(proxyUrl, 10000)
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    if (
-      msg.includes('Google Calendar returned') ||
-      msg.includes('Verify that') ||
-      msg.includes('Confirm you copied') ||
-      msg.includes('Use the secret') ||
-      msg.includes('invalid content')
-    ) {
-      throw e
-    }
+    if (e instanceof Error) primaryError = e
   }
 
   // 2. Secondary: Direct fetch
@@ -155,6 +147,10 @@ export async function fetchIcsFeed(icalUrl: string): Promise<string> {
   try {
     return await trySingleFetch(corsProxyUrl, 8000)
   } catch {}
+
+  if (primaryError) {
+    throw primaryError
+  }
 
   throw new Error(
     'Could not reach Google Calendar. Please verify your secret iCal URL in Google Calendar settings, or check your internet connection/VPN.'
