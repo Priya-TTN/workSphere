@@ -51,7 +51,11 @@ export function isGoogleCalendarConnected(): boolean {
 }
 
 export function normalizeIcalUrl(raw: string): string {
-  return raw.trim().replace(/^webcal:/i, 'https:')
+  let url = raw.trim().replace(/^webcal:/i, 'https:')
+  if (url.includes('/calendar/ical/') && url.includes('/private-') && !url.endsWith('.ics')) {
+    url = url.endsWith('/') ? `${url}basic.ics` : `${url}/basic.ics`
+  }
+  return url
 }
 
 export function validateGoogleIcalUrl(raw: string): string | null {
@@ -69,8 +73,8 @@ export function validateGoogleIcalUrl(raw: string): string | null {
   if (url.hostname !== 'calendar.google.com') {
     return 'Use the secret iCal URL from Google Calendar (calendar.google.com).'
   }
-  if (!url.pathname.includes('/calendar/ical/') || !url.pathname.endsWith('.ics')) {
-    return 'Use the secret address in iCal format (it should end in .ics).'
+  if (!url.pathname.includes('/calendar/ical/')) {
+    return 'Use the secret address in iCal format.'
   }
   if (!url.pathname.includes('/private-')) {
     return 'Use the secret iCal address, not the public one.'
@@ -85,22 +89,31 @@ function toProxyUrl(icalUrl: string): string {
 }
 
 export async function fetchIcsFeed(icalUrl: string): Promise<string> {
-  const error = validateGoogleIcalUrl(icalUrl)
+  const normalized = normalizeIcalUrl(icalUrl)
+  const error = validateGoogleIcalUrl(normalized)
   if (error) throw new Error(error)
 
-  const response = await fetch(toProxyUrl(icalUrl), {
+  const response = await fetch(toProxyUrl(normalized), {
     headers: { Accept: 'text/calendar, text/plain, */*' },
   })
 
   if (!response.ok) {
+    let message = ''
+    try {
+      const data = await response.json()
+      if (data && typeof data === 'object' && 'error' in data) {
+        message = String(data.error)
+      }
+    } catch {}
     throw new Error(
-      'Could not reach Google Calendar from the dev server. Keep the app running with npm run dev and try Connect again. If it still fails, check your network or VPN.'
+      message ||
+        `Google Calendar returned HTTP ${response.status}. Please check your secret iCal URL in Google Calendar settings.`
     )
   }
 
   const text = await response.text()
   if (!text.includes('BEGIN:VCALENDAR')) {
-    throw new Error('The URL did not return a calendar file. Confirm you copied the secret iCal address.')
+    throw new Error('The URL did not return a valid calendar file. Confirm you copied the secret iCal address.')
   }
 
   return text
