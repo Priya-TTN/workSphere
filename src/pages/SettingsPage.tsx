@@ -35,21 +35,27 @@ export function SettingsPage() {
       </div>
 
       <div className="space-y-6">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-slate-900 mb-4">Profile</h3>
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-600 text-xl font-bold text-white">
-              {currentInitials}
-            </div>
+        <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-purple-50/80 via-slate-50 to-purple-50/40 p-5 border border-purple-100/80 mb-6">
             <div>
-              <p className="text-lg font-semibold text-slate-800">{displayName}</p>
-              <p className="text-sm text-slate-500">{userRole}</p>
+              <span className="text-[11px] font-semibold tracking-wider text-purple-600 uppercase">Profile Overview</span>
+              <h3 className="text-xl font-bold text-slate-900 mt-0.5">{displayName || 'User Profile'}</h3>
+              <p className="text-sm text-slate-500 mt-0.5">{userRole} • {userEmail}</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="relative">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-xl font-bold text-white shadow-md ring-4 ring-white">
+                  {currentInitials}
+                </div>
+                <span className="absolute bottom-0.5 right-0.5 h-4 w-4 rounded-full bg-emerald-500 ring-2 ring-white" title="Active" />
+              </div>
             </div>
           </div>
+
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Email</label>
-              <Input value={userEmail} readOnly />
+              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Email Address</label>
+              <Input value={userEmail} readOnly className="bg-slate-50 text-slate-500 cursor-not-allowed" />
             </div>
             <div>
               <label htmlFor="display-name" className="text-sm font-medium text-slate-700 mb-1.5 block">
@@ -59,14 +65,15 @@ export function SettingsPage() {
                 id="display-name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Enter display name"
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Role</label>
-              <Input value={userRole} readOnly />
+              <label className="text-sm font-medium text-slate-700 mb-1.5 block">Role & Position</label>
+              <Input value={userRole} readOnly className="bg-slate-50 text-slate-500 cursor-not-allowed" />
             </div>
           </div>
-          <Button className="mt-4" onClick={handleSave} disabled={!displayName.trim()}>
+          <Button className="mt-5" onClick={handleSave} disabled={!displayName.trim()}>
             Save Changes
           </Button>
         </div>
