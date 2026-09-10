@@ -4,15 +4,47 @@ import { useApp } from '@/context/AppContext'
 import { TaskCard } from '@/components/shared/TaskCard'
 import { ContextPanel } from '@/components/shared/ContextPanel'
 import { useTaskContext } from '@/hooks/useTaskContext'
+import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
+import { Input } from '@/components/ui/Input'
+import { Plus } from 'lucide-react'
 import type { Priority, Task } from '@/types'
 
 type StatusFilter = Task['status'] | 'ALL'
 
 export function TasksPage() {
-  const { tasks, updateTaskStatus } = useApp()
+  const { tasks, addTask, updateTaskStatus } = useApp()
   const [searchParams, setSearchParams] = useSearchParams()
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'ALL'>('ALL')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL')
+
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const [newDesc, setNewDesc] = useState('')
+  const [newPriority, setNewPriority] = useState<Priority>('MEDIUM')
+  const [newDeadline, setNewDeadline] = useState(new Date().toISOString().split('T')[0])
+  const [newHours, setNewHours] = useState('2')
+
+  const handleCreateTask = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newTitle.trim()) return
+    addTask({
+      title: newTitle.trim(),
+      description: newDesc.trim() || 'No description provided.',
+      source: 'Internal',
+      sourceId: `user-${Date.now()}`,
+      priority: newPriority,
+      priorityScore: newPriority === 'HIGH' ? 3 : newPriority === 'MEDIUM' ? 2 : 1,
+      deadline: newDeadline,
+      estimatedMinutes: (parseFloat(newHours) || 2) * 60,
+      status: 'TODO',
+      linkedItems: [],
+      reasons: ['Created by user'],
+    })
+    setNewTitle('')
+    setNewDesc('')
+    setIsModalOpen(false)
+  }
 
   const selectedId = searchParams.get('selected')
 
@@ -39,9 +71,15 @@ export function TasksPage() {
 
   return (
     <div className="p-4 lg:p-6 max-w-[1200px] mx-auto">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-slate-900">Tasks</h2>
-        <p className="text-slate-500 mt-1">Manage and prioritize your work items</p>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Tasks</h2>
+          <p className="text-slate-500 mt-1">Manage and prioritize your work items</p>
+        </div>
+        <Button onClick={() => setIsModalOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Create Task
+        </Button>
       </div>
 
       <div className="flex gap-2 mb-3 flex-wrap">
@@ -102,6 +140,70 @@ export function TasksPage() {
           />
         )}
       </div>
+
+      <Modal open={isModalOpen} onOpenChange={setIsModalOpen} title="Create New Task">
+        <form onSubmit={handleCreateTask} className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-slate-700 block mb-1">Task Title</label>
+            <Input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="e.g. Implement user authentication"
+              required
+            />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-700 block mb-1">Description</label>
+            <textarea
+              value={newDesc}
+              onChange={(e) => setNewDesc(e.target.value)}
+              placeholder="Task details and description..."
+              rows={3}
+              className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-100"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Priority</label>
+              <select
+                value={newPriority}
+                onChange={(e) => setNewPriority(e.target.value as Priority)}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-100"
+              >
+                <option value="HIGH">High Priority</option>
+                <option value="MEDIUM">Medium Priority</option>
+                <option value="LOW">Low Priority</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-700 block mb-1">Estimated Hours</label>
+              <Input
+                type="number"
+                step="0.5"
+                min="0.5"
+                value={newHours}
+                onChange={(e) => setNewHours(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-700 block mb-1">Deadline Date</label>
+            <Input
+              type="date"
+              value={newDeadline}
+              onChange={(e) => setNewDeadline(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={!newTitle.trim()}>
+              Create Task
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

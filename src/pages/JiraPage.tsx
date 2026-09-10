@@ -17,29 +17,39 @@ export function JiraPage() {
       </div>
 
       <div className="space-y-3">
-        {tickets.map((ticket) => (
-          <div key={ticket.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50">
-                <LayoutGrid className="h-4 w-4 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-blue-600">{ticket.key}</span>
-                  <PriorityBadge priority={ticket.priority as Priority} showLabel={false} />
-                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                    {ticket.status}
-                  </span>
+        {tickets.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center">
+            <LayoutGrid className="h-8 w-8 text-slate-400 mx-auto mb-2 opacity-60" />
+            <p className="text-sm font-medium text-slate-700">No Jira Tickets</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Active tickets assigned to you will appear here when connected to your Jira project workspace.
+            </p>
+          </div>
+        ) : (
+          tickets.map((ticket) => (
+            <div key={ticket.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50">
+                  <LayoutGrid className="h-4 w-4 text-blue-600" />
                 </div>
-                <p className="text-sm font-medium text-slate-800 mt-0.5">{ticket.title}</p>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-xs text-slate-400">Assignee: {ticket.assignee}</span>
-                  <span className="text-xs text-slate-400">{formatRelativeTime(ticket.updatedAt)}</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-bold text-blue-600">{ticket.key}</span>
+                    <PriorityBadge priority={ticket.priority as Priority} showLabel={false} />
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                      {ticket.status}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-slate-800 mt-0.5">{ticket.title}</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-xs text-slate-400">Assignee: {ticket.assignee}</span>
+                    <span className="text-xs text-slate-400">{formatRelativeTime(ticket.updatedAt)}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   )

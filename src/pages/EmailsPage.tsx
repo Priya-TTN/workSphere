@@ -1,16 +1,13 @@
 import { useState } from 'react'
-import emailsData from '@/data/emails.json'
 import { PriorityBadge } from '@/components/ui/PriorityBadge'
-import { formatRelativeTime, formatRelativeTimeLive } from '@/lib/utils'
-import type { Email, Priority } from '@/types'
+import { formatRelativeTimeLive } from '@/lib/utils'
+import type { Priority } from '@/types'
 import { Mail, AlertCircle, ChevronDown, Video } from 'lucide-react'
 import { GmailConnector } from '@/components/email/GmailConnector'
 import { useGmail } from '@/context/GmailContext'
 import { isLikelyActionNeeded } from '@/services/email/meetingHints'
 import { emailBodyParagraphs, formatEmailPreview } from '@/services/email/formatEmailBody'
 import type { EmailRecord } from '@/services/email/types'
-
-const mockEmails = emailsData as Email[]
 
 function GmailRow({ email }: { email: EmailRecord }) {
   const [open, setOpen] = useState(false)
@@ -104,51 +101,19 @@ export function EmailsPage() {
     )
   }
 
-  const needsAction = mockEmails.filter((e) => e.needsAction)
   return (
     <div className="p-4 lg:p-6 max-w-[1000px] mx-auto space-y-5">
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Emails</h2>
-        <p className="text-slate-500 mt-1">
-          {mockEmails.length} sample emails · {needsAction.length} need action
-        </p>
+        <p className="text-slate-500 mt-1">Connect your Gmail account to manage your inbox</p>
       </div>
       <GmailConnector />
-      <p className="text-xs text-slate-400 font-medium uppercase tracking-wide px-1">
-        Sample emails · Connect Gmail to see your inbox
-      </p>
-      <div className="space-y-3">
-        {mockEmails.map((email) => (
-          <div
-            key={email.id}
-            className={`rounded-xl border bg-white p-4 shadow-sm transition-colors hover:shadow-md ${
-              email.needsAction ? 'border-blue-200' : 'border-slate-200'
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50">
-                <Mail className="h-4 w-4 text-blue-500" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="text-sm font-semibold text-slate-800">{email.from}</p>
-                  {email.needsAction && (
-                    <span className="flex items-center gap-1 text-[10px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                      <AlertCircle className="h-3 w-3" />
-                      Needs Action
-                    </span>
-                  )}
-                  <PriorityBadge priority={email.priority as Priority} showLabel={false} />
-                </div>
-                <p className="text-sm font-medium text-slate-700 mt-0.5">{email.subject}</p>
-                <p className="text-xs text-slate-400 mt-1 truncate">{email.preview}</p>
-              </div>
-              <span className="text-[10px] text-slate-400 shrink-0">
-                {formatRelativeTime(email.receivedAt)}
-              </span>
-            </div>
-          </div>
-        ))}
+      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center">
+        <Mail className="h-8 w-8 text-slate-400 mx-auto mb-2 opacity-60" />
+        <p className="text-sm font-medium text-slate-700">No emails connected</p>
+        <p className="text-xs text-slate-500 mt-1">
+          Use the Gmail Connector above to sync your inbox and action items in real time.
+        </p>
       </div>
     </div>
   )

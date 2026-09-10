@@ -111,32 +111,7 @@ function GoogleEventCard({ event }: { event: GoogleCalendarEvent }) {
   )
 }
 
-function MockEventCard({ event }: { event: CalendarEvent }) {
-  const isOnline = event.location.includes('Teams') || event.location.includes('Meet')
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-purple-50 border border-purple-100">
-          <Calendar className="h-5 w-5 text-purple-600" />
-        </div>
-        <div className="flex-1">
-          <p className="text-lg font-semibold text-slate-800">{event.title}</p>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {event.startTime} – {event.endTime}
-          </p>
-          <div className="flex items-center gap-1.5 mt-2">
-            {isOnline ? (
-              <Users className="h-3.5 w-3.5 text-slate-400" />
-            ) : (
-              <MapPin className="h-3.5 w-3.5 text-slate-400" />
-            )}
-            <span className="text-xs text-slate-400">{event.location}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -306,14 +281,13 @@ export function CalendarPage() {
           </div>
         )
       ) : (
-        /* Not connected — show mock data with a subtle note */
-        <div className="space-y-4">
-          <p className="text-xs text-slate-400 font-medium uppercase tracking-wide px-1">
-            Sample events · Connect Google Calendar to see your real schedule
+        /* Not connected — clean empty state */
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center">
+          <CalendarDays className="h-8 w-8 text-slate-400 mx-auto mb-2 opacity-60" />
+          <p className="text-sm font-medium text-slate-700">No Calendar Connected</p>
+          <p className="text-xs text-slate-500 mt-1">
+            Connect your Google Calendar with a Secret iCal URL above to sync your meetings and schedule.
           </p>
-          {mockEvents.map((event) => (
-            <MockEventCard key={event.id} event={event} />
-          ))}
         </div>
       )}
     </div>

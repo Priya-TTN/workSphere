@@ -13,29 +13,27 @@ import { useGmail } from '@/context/GmailContext'
 import { useGoogleCalendar } from '@/context/GoogleCalendarContext'
 import { formatEventTime } from '@/services/googleCalendar'
 import { isLikelyActionNeeded } from '@/services/email/meetingHints'
-import emailsData from '@/data/emails.json'
-import type { Email } from '@/types'
 
 export function DashboardPage() {
   const { isConnected: gmailConnected, messages, unseenCount } = useGmail()
   const { isConnected: calendarConnected, todayEvents } = useGoogleCalendar()
 
-  const emailCount = gmailConnected ? messages.length : (emailsData as Email[]).length
+  const emailCount = gmailConnected ? messages.length : 0
   const emailAction = gmailConnected
     ? messages.filter((email) => isLikelyActionNeeded(email.subject, email.bodyText, email.isUnread)).length
-    : (emailsData as Email[]).filter((email) => email.needsAction).length
+    : 0
   const emailSubtitle = gmailConnected
     ? unseenCount > 0
       ? `${unseenCount} unread`
       : `${emailAction} need action`
-    : `${emailAction} need action`
+    : 'Connect Gmail'
 
-  const meetingCount = calendarConnected ? todayEvents.length : 3
+  const meetingCount = calendarConnected ? todayEvents.length : 0
   const nextMeeting = calendarConnected
     ? todayEvents[0]
       ? `Next at ${formatEventTime(todayEvents[0].start.dateTime ?? todayEvents[0].start.date) || 'today'}`
       : 'No meetings today'
-    : 'Next at 10:30 AM'
+    : 'Connect Calendar'
 
   return (
     <div className="px-4 py-5 sm:px-5 lg:px-7 lg:py-6 max-w-[1440px] mx-auto">
@@ -43,11 +41,11 @@ export function DashboardPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-3.5 mb-5 lg:mb-6">
         <SourceSummaryCard type="emails" count={emailCount} subtitle={emailSubtitle} />
-        <SourceSummaryCard type="teams" count={4} subtitle="2 mentions for you" />
-        <SourceSummaryCard type="jira" count={5} subtitle="2 high priority" />
+        <SourceSummaryCard type="teams" count={0} subtitle="0 mentions for you" />
+        <SourceSummaryCard type="jira" count={0} subtitle="0 high priority" />
         <SourceSummaryCard type="meetings" count={meetingCount} subtitle={nextMeeting} />
-        <SourceSummaryCard type="excel" count={2} subtitle="1 needs review" />
-        <SourceSummaryCard type="documents" count={4} subtitle="2 new updates" />
+        <SourceSummaryCard type="excel" count={0} subtitle="0 files" />
+        <SourceSummaryCard type="documents" count={0} subtitle="0 updates" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] gap-4 lg:gap-5 mb-4 lg:mb-5">

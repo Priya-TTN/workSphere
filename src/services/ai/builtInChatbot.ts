@@ -1,5 +1,5 @@
-import type { Activity, Deadline, JiraTicket, Task, CalendarEvent, TeamsMessage } from '@/types'
-import type { EmailRecord } from '@/services/email/types'
+import type { Activity } from '@/types'
+import type { CalendarEvent } from '@/types'
 import type { GoogleCalendarEvent } from '@/services/googleCalendar'
 import type { WorkSnapshot } from '@/services/ai/contextEngine'
 import { calculateWorkload, getDeferRecommendations } from '@/services/workloadCalculator'
@@ -20,12 +20,24 @@ function daysUntilDeadline(deadline: string): number {
   return Math.round((d.getTime() - today.getTime()) / 86_400_000)
 }
 
+function mapGoogleToCalendarEvents(events: GoogleCalendarEvent[]): CalendarEvent[] {
+  return events.map((e) => ({
+    id: e.id,
+    title: e.summary,
+    startTime: e.start.dateTime ?? e.start.date ?? '',
+    endTime: e.end.dateTime ?? e.end.date ?? '',
+    location: e.location ?? '',
+    source: 'Calendar',
+  }))
+}
+
 export function generateBuiltInAiResponse(
   userQuery: string,
   snapshot: WorkSnapshot
 ): BuiltInAIResponse {
   const q = userQuery.trim().toLowerCase()
   const { emails, events, tasks, jira, teams, deadlines, activities } = snapshot
+  const mappedEvents = mapGoogleToCalendarEvents(events)
 
   // 1. Greetings & Help
   if (
@@ -41,7 +53,7 @@ export function generateBuiltInAiResponse(
       answer: `Hello! I am **WorkPilot AI**, your intelligent built-in work assistant.
 
 I analyze all your work data in real time across:
-• 📅 **Google Calendar** (${events.length} events today)
+• 📅 **Google Calendar** (${events.length} events)
 • 📩 **Gmail** (${emails.length} emails, ${emails.filter((e) => e.isUnread).length} unread)
 • 🎯 **Tasks & Priorities** (${tasks.length} total tasks)
 • 📊 **Jira Tickets** (${jira.length} active tickets)
@@ -68,7 +80,7 @@ I analyze all your work data in real time across:
     q.includes('workday') ||
     q.includes('day overview')
   ) {
-    const rec = getRecommendedTask(tasks, teams, calendarDataFallback(events))
+    const rec = getRecommendedTask(tasks, teams, mappedEvents)
     const workload = calculateWorkload(tasks)
     const unreadEmails = emails.filter((e) => e.isUnread)
     const upcomingEvents = events.slice(0, 3)
@@ -96,9 +108,13 @@ I analyze all your work data in real time across:
     summaryText += `\n`
 
     summaryText += `**📩 Email Highlights (${unreadEmails.length} Unread):**\n`
-    emails.slice(0, 3).forEach((mail) => {
-      summaryText += `- **${mail.from}**: ${mail.subject}${mail.isUnread ? ' *(Unread)*' : ''}\n`
-    })
+    if (emails.length > 0) {
+      emails.slice(0, 3).forEach((mail) => {
+        summaryText += `- **${mail.from}**: ${mail.subject}${mail.isUnread ? ' *(Unread)*' : ''}\n`
+      })
+    } else {
+      summaryText += `- No connected emails in inbox.\n`
+    }
 
     return {
       answer: summaryText,
@@ -145,20 +161,21 @@ I analyze all your work data in real time across:
       return { answer: reply, type: 'text' }
     } else {
       return {
-        answer: `I looked for ticket **${ticketKey}** in Jira, but couldn't find a direct record. Available tickets in Jira: ${jira
-          .map((j) => j.key)
-          .join(', ')}.`,
+        answer: `I looked for ticket **${ticketKey}** in Jira. No active records found.`,
         type: 'text',
       }
     }
   }
 
   if (q.includes('jira') || q.includes('ticket') || q.includes('sprint') || q.includes('issue')) {
+    if (jira.length === 0) {
+      return { answer: 'No active Jira tickets found in your workspace.', type: 'text' }
+    }
     const lines = jira.map(
       (j) => `- **${j.key}** [${j.status}] — ${j.title} (Assignee: ${j.assignee}, Priority: ${j.priority})`
     )
     return {
-      answer: `Here are the active Jira tickets:\n\n` + lines.join('\n'),
+      answer: `Here are your Jira tickets:\n\n` + lines.join('\n'),
       type: 'text',
     }
   }
@@ -168,11 +185,7 @@ I analyze all your work data in real time across:
     q.includes('teams') ||
     q.includes('chat') ||
     q.includes('slack') ||
-    q.includes('mention') ||
-    q.includes('alex') ||
-    q.includes('sarah') ||
-    q.includes('priya') ||
-    q.includes('harsh')
+    q.includes('mention')
   ) {
     const person = ['alex', 'sarah', 'priya', 'harsh'].find((name) => q.includes(name))
     let filteredMsgs = teams
@@ -194,6 +207,8 @@ I analyze all your work data in real time across:
         type: 'list',
         items,
       }
+    } else {
+      return { answer: 'No Teams messages or mentions found.', type: 'text' }
     }
   }
 
@@ -206,7 +221,7 @@ I analyze all your work data in real time across:
     q.includes('urgent') ||
     q.includes('recommend')
   ) {
-    const rec = getRecommendedTask(tasks, teams, calendarDataFallback(events))
+    const rec = getRecommendedTask(tasks, teams, mappedEvents)
     if (rec) {
       const days = daysUntilDeadline(rec.task.deadline)
       const dueLabel = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`
@@ -223,7 +238,7 @@ I analyze all your work data in real time across:
       }
     }
     return {
-      answer: 'You have completed all pending tasks!',
+      answer: 'You have no pending tasks! Create a new task in Tasks page to get started.',
       type: 'text',
     }
   }
@@ -248,7 +263,7 @@ I analyze all your work data in real time across:
       reply += `- **Deficit:** ${workload.deficitMinutes} minutes\n\n`
       reply += `**Recommended tasks to defer to tomorrow:**\n`
       recs.suggestions.forEach((s) => {
-        reply += `- **${s.id}: ${s.title}** (${s.reason})\n`
+        reply += `- **${s.task.id}: ${s.task.title}** (${s.task.priority} Priority, ${s.minutes} min)\n`
       })
       return { answer: reply, type: 'text' }
     } else {
@@ -261,6 +276,9 @@ I analyze all your work data in real time across:
 
   // 7. Deadlines & Due Dates
   if (q.includes('deadline') || q.includes('due') || q.includes('coming up') || q.includes('overdue')) {
+    if (deadlines.length === 0) {
+      return { answer: 'No upcoming deadlines set.', type: 'text' }
+    }
     return {
       answer: 'Here are your upcoming deadlines across all sources:',
       type: 'list',
@@ -278,6 +296,9 @@ I analyze all your work data in real time across:
     q.includes('activity') ||
     q.includes('recent')
   ) {
+    if (activities.length === 0) {
+      return { answer: 'No recent activity recorded yet.', type: 'text' }
+    }
     return {
       answer: "Here is what changed recently across your work tools:",
       type: 'activity',
@@ -298,7 +319,7 @@ I analyze all your work data in real time across:
       }
     }
     return {
-      answer: 'You have no scheduled meetings in your calendar today.',
+      answer: 'You have no scheduled meetings in your calendar. Connect Google Calendar to sync your schedule.',
       type: 'text',
     }
   }
@@ -312,6 +333,10 @@ I analyze all your work data in real time across:
         type: 'list',
         items: brief.bullets,
       }
+    }
+    return {
+      answer: 'No connected emails. Use the Gmail Connector on the Emails page to sync your inbox.',
+      type: 'text',
     }
   }
 
@@ -374,9 +399,4 @@ I analyze all your work data in real time across:
 - *"Show active Jira tickets"*`,
     type: 'text',
   }
-}
-
-function calendarDataFallback(events: GoogleCalendarEvent[]) {
-  if (events.length > 0) return events
-  return []
 }
