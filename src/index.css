@@ -46,76 +46,182 @@
   }
 }
 
-/* Dark Mode Overrides */
+/* ==========================================================================
+   HIGH-CONTRAST DARK MODE OVERRIDES
+   ========================================================================== */
 html.dark {
   color-scheme: dark;
 }
 
 html.dark body {
   background-color: #0b0f19 !important;
-  color: #e2e8f0 !important;
+  color: #f1f5f9 !important;
 }
 
-html.dark .bg-slate-50 {
+/* Containers & Card Backgrounds */
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/80,
+html.dark .bg-slate-50\/50 {
   background-color: #0b0f19 !important;
 }
 
 html.dark .bg-white {
   background-color: #111827 !important;
-  color: #f1f5f9 !important;
+  color: #f8fafc !important;
 }
 
-html.dark .bg-slate-50\/80,
-html.dark .bg-slate-50\/50,
-html.dark .bg-slate-100 {
+html.dark .bg-slate-100,
+html.dark .bg-slate-100\/80,
+html.dark .bg-slate-200\/50 {
   background-color: #1f293d !important;
 }
 
+/* Hover States */
+html.dark .hover\:bg-slate-50:hover,
+html.dark .hover\:bg-slate-100:hover,
+html.dark .hover\:bg-slate-100\/80:hover {
+  background-color: #1e293b !important;
+}
+
+/* High Contrast Colored Badges & Tinted Containers */
+html.dark .bg-purple-50,
+html.dark .bg-purple-50\/80,
+html.dark .bg-purple-50\/50,
+html.dark .bg-purple-100 {
+  background-color: rgba(124, 58, 237, 0.18) !important;
+  border-color: rgba(167, 139, 250, 0.35) !important;
+}
+
+html.dark .bg-blue-50,
+html.dark .bg-blue-50\/80,
+html.dark .bg-blue-100 {
+  background-color: rgba(59, 130, 246, 0.18) !important;
+  border-color: rgba(96, 165, 250, 0.35) !important;
+}
+
+html.dark .bg-green-50,
+html.dark .bg-emerald-50,
+html.dark .bg-green-100 {
+  background-color: rgba(34, 197, 94, 0.18) !important;
+  border-color: rgba(74, 222, 128, 0.35) !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.18) !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+html.dark .bg-red-50,
+html.dark .bg-red-100 {
+  background-color: rgba(239, 68, 68, 0.18) !important;
+  border-color: rgba(248, 113, 113, 0.35) !important;
+}
+
+/* Borders & Dividers */
 html.dark .border-slate-200,
 html.dark .border-slate-200\/90,
 html.dark .border-slate-200\/80,
-html.dark .border-slate-100 {
-  border-color: #1f293d !important;
+html.dark .border-slate-100,
+html.dark .border-slate-300 {
+  border-color: #26334d !important;
 }
 
+html.dark .divide-slate-100 > * + *,
+html.dark .divide-slate-200 > * + * {
+  border-color: #26334d !important;
+}
+
+/* Typography Contrast Enhancements */
 html.dark .text-slate-900,
 html.dark .text-slate-800 {
-  color: #f8fafc !important;
+  color: #ffffff !important;
 }
 
 html.dark .text-slate-700,
 html.dark .text-slate-600 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-slate-500 {
   color: #cbd5e1 !important;
 }
 
-html.dark .text-slate-500,
 html.dark .text-slate-400 {
   color: #94a3b8 !important;
 }
 
-html.dark .dashboard-card {
-  background-color: #111827 !important;
-  border-color: #1f293d !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+/* Accent Text Color Highlights for Dark Backgrounds */
+html.dark .text-purple-600,
+html.dark .text-purple-700 {
+  color: #a78bfa !important;
 }
 
-html.dark header {
-  background-color: rgba(17, 24, 39, 0.95) !important;
-  border-color: #1f293d !important;
+html.dark .text-blue-600,
+html.dark .text-blue-700 {
+  color: #60a5fa !important;
 }
 
+html.dark .text-green-600,
+html.dark .text-green-700,
+html.dark .text-emerald-600 {
+  color: #4ade80 !important;
+}
+
+html.dark .text-amber-600,
+html.dark .text-amber-700 {
+  color: #fbbf24 !important;
+}
+
+html.dark .text-red-600,
+html.dark .text-red-700 {
+  color: #f87171 !important;
+}
+
+/* Form Controls: Inputs, Selects, Textareas */
 html.dark input,
 html.dark textarea,
 html.dark select {
   background-color: #1a2333 !important;
-  color: #f1f5f9 !important;
+  color: #f8fafc !important;
   border-color: #334155 !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+html.dark input[readonly],
+html.dark input:disabled {
+  background-color: #0f172a !important;
+  color: #94a3b8 !important;
+}
+
+/* Cards & Headers */
+html.dark .dashboard-card {
+  background-color: #111827 !important;
+  border-color: #26334d !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45) !important;
+}
+
+html.dark header {
+  background-color: rgba(17, 24, 39, 0.96) !important;
+  border-color: #26334d !important;
+}
+
+/* Dropdown Content & Modals */
+html.dark [role="menu"],
+html.dark [data-radix-popper-content-wrapper] > div {
+  background-color: #111827 !important;
+  border-color: #26334d !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
 }
 
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
+    scrollbar-color: #334155 transparent;
   }
 
   .dashboard-card {
