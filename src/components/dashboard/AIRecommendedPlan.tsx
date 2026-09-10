@@ -105,45 +105,55 @@ export function AIRecommendedPlan() {
         </button>
       </div>
 
-      <div className="relative pl-5">
-        <div className="absolute left-[9px] top-2 bottom-3 w-px bg-slate-200" />
-        <div className="space-y-0">
-          {items.map((item, index) => {
-            const Icon = sourceIcons[item.source] || Calendar
-            const dotColor = item.priority ? dotColors[item.priority] : dotColors.default
-            const isLast = index === items.length - 1
-            return (
-              <div key={item.id} className={cn('relative', !isLast && 'pb-4')}>
-                <div
-                  className={`absolute -left-5 top-[7px] z-10 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-white ${dotColor} shadow-sm`}
-                />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] font-medium text-slate-500 tabular-nums">
-                      {item.startTime} {item.endTime !== 'Next' ? `– ${item.endTime}` : ''}
-                    </span>
-                    {item.priority && (
-                      <PriorityBadge priority={item.priority as Priority} showLabel={false} />
-                    )}
-                    {item.source === 'Email' && (
-                      <span className="text-[10px] font-medium text-purple-600 bg-purple-50 px-1.5 py-0.2 rounded inline-flex items-center gap-0.5">
-                        <Sparkles className="h-2.5 w-2.5" /> Action Item
+      {items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-8 text-center text-slate-400">
+          <Calendar className="h-7 w-7 text-slate-300 mb-2" />
+          <p className="text-xs text-slate-600 font-medium">No plan items available</p>
+          <p className="text-[11px] text-slate-400 mt-1">
+            Connect Gmail or Google Calendar to generate your AI workday plan.
+          </p>
+        </div>
+      ) : (
+        <div className="relative pl-5">
+          <div className="absolute left-[9px] top-2 bottom-3 w-px bg-slate-200" />
+          <div className="space-y-0">
+            {items.map((item, index) => {
+              const Icon = sourceIcons[item.source] || Calendar
+              const dotColor = item.priority ? dotColors[item.priority] : dotColors.default
+              const isLast = index === items.length - 1
+              return (
+                <div key={item.id} className={cn('relative', !isLast && 'pb-4')}>
+                  <div
+                    className={`absolute -left-5 top-[7px] z-10 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-white ${dotColor} shadow-sm`}
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] font-medium text-slate-500 tabular-nums">
+                        {item.startTime} {item.endTime !== 'Next' ? `– ${item.endTime}` : ''}
                       </span>
-                    )}
-                  </div>
-                  <p className="text-[13px] font-semibold text-slate-800 mt-0.5 leading-snug">
-                    {item.title}
-                  </p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <Icon className="h-3 w-3 text-slate-400 shrink-0" />
-                    <span className="text-[11px] text-slate-400 truncate">{item.subtitle}</span>
+                      {item.priority && (
+                        <PriorityBadge priority={item.priority as Priority} showLabel={false} />
+                      )}
+                      {item.source === 'Email' && (
+                        <span className="text-[10px] font-medium text-purple-600 bg-purple-50 px-1.5 py-0.2 rounded inline-flex items-center gap-0.5">
+                          <Sparkles className="h-2.5 w-2.5" /> Action Item
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[13px] font-semibold text-slate-800 mt-0.5 leading-snug">
+                      {item.title}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <Icon className="h-3 w-3 text-slate-400 shrink-0" />
+                      <span className="text-[11px] text-slate-400 truncate">{item.subtitle}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
