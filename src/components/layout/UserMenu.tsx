@@ -26,7 +26,7 @@ export function UserMenu({ user: userProp }: UserMenuProps = {}) {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <button className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-100 transition-colors">
+        <button className="flex items-center gap-3 rounded-lg px-2.5 py-1.5 hover:bg-slate-100 transition-colors">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-600 text-xs font-semibold text-white">
             {avatar}
           </div>

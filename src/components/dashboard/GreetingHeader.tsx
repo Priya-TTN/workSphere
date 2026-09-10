@@ -14,7 +14,7 @@ export function GreetingHeader() {
   })
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-5 lg:mb-6">
+    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6 lg:gap-8 mb-5 lg:mb-6">
       <div className="min-w-0">
         <h2 className="text-xl lg:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
           Good Morning, {firstName}!
@@ -23,7 +23,7 @@ export function GreetingHeader() {
           Here&apos;s your workday at a glance. Stay focused, you&apos;ve got this!
         </p>
       </div>
-      <div className="flex items-center gap-2.5 sm:text-right shrink-0">
+      <div className="flex items-center gap-3.5 sm:text-right shrink-0">
         <div>
           <p className="text-[13px] font-medium text-slate-700 leading-tight">{formatted}</p>
           <p className="text-[11px] text-slate-400 italic mt-0.5">&quot;Small steps, big progress.&quot;</p>
