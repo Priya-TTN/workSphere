@@ -87,6 +87,10 @@ async function handleGmailFetch(req: IncomingMessage, res: ServerResponse) {
     logger: false,
   })
 
+  client.on('error', (err) => {
+    console.error('[Gmail IMAP Socket Error Caught]:', err?.message || err)
+  })
+
   try {
     await client.connect()
     const lock = await client.getMailboxLock('INBOX')
