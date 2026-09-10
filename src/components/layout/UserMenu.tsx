@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom'
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
-import { ChevronDown, LogOut, Settings, User } from 'lucide-react'
+import { ChevronDown, LogOut, Settings, User, Moon, Sun } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
 import { useApp } from '@/context/AppContext'
+import { useTheme } from '@/context/ThemeContext'
 
 interface UserMenuProps {
   user?: { name: string; role: string; avatar: string }
@@ -11,6 +12,7 @@ interface UserMenuProps {
 export function UserMenu({ user: userProp }: UserMenuProps = {}) {
   const { logout, userName, userRole, userAvatar } = useAuth()
   const { resetAppState } = useApp()
+  const { isDarkMode, toggleTheme } = useTheme()
   const navigate = useNavigate()
 
   const name = userProp?.name ?? userName
@@ -56,6 +58,19 @@ export function UserMenu({ user: userProp }: UserMenuProps = {}) {
           >
             <Settings className="h-4 w-4" />
             Settings
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            className="flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer outline-none"
+            onSelect={(e) => {
+              e.preventDefault()
+              toggleTheme()
+            }}
+          >
+            <div className="flex items-center gap-2">
+              {isDarkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-slate-500" />}
+              Theme
+            </div>
+            <span className="text-xs font-medium text-slate-400 capitalize">{isDarkMode ? 'Dark' : 'Light'}</span>
           </DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 h-px bg-slate-200" />
           <DropdownMenu.Item

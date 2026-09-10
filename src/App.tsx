@@ -5,6 +5,7 @@ import { AppProvider } from '@/context/AppContext'
 import { GoogleCalendarProvider } from '@/context/GoogleCalendarContext'
 import { GmailProvider } from '@/context/GmailContext'
 import { LlmProvider } from '@/context/LlmContext'
+import { ThemeProvider } from '@/context/ThemeContext'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { Layout } from '@/components/layout/Layout'
 import { LoginPage } from '@/pages/LoginPage'
@@ -28,44 +29,46 @@ const queryClient = new QueryClient()
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <AppProvider>
-          <GoogleCalendarProvider>
-          <GmailProvider>
-          <LlmProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<RootRedirect />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <Layout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/tasks" element={<TasksPage />} />
-                <Route path="/emails" element={<EmailsPage />} />
-                <Route path="/teams" element={<TeamsPage />} />
-                <Route path="/jira" element={<JiraPage />} />
-                <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/documents" element={<DocumentsPage />} />
-                <Route path="/excel" element={<ExcelPage />} />
-                <Route path="/search" element={<SearchPage />} />
-                <Route path="/ask-workpilot" element={<AskWorkPilotPage />} />
-                <Route path="/ai-settings" element={<LlmSettingsPage />} />
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-              </Route>
-              <Route path="*" element={<RootRedirect />} />
-            </Routes>
-          </BrowserRouter>
-          </LlmProvider>
-          </GmailProvider>
-          </GoogleCalendarProvider>
-        </AppProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppProvider>
+            <GoogleCalendarProvider>
+            <GmailProvider>
+            <LlmProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<RootRedirect />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <Layout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/tasks" element={<TasksPage />} />
+                  <Route path="/emails" element={<EmailsPage />} />
+                  <Route path="/teams" element={<TeamsPage />} />
+                  <Route path="/jira" element={<JiraPage />} />
+                  <Route path="/calendar" element={<CalendarPage />} />
+                  <Route path="/documents" element={<DocumentsPage />} />
+                  <Route path="/excel" element={<ExcelPage />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/ask-workpilot" element={<AskWorkPilotPage />} />
+                  <Route path="/ai-settings" element={<LlmSettingsPage />} />
+                  <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Route>
+                <Route path="*" element={<RootRedirect />} />
+              </Routes>
+            </BrowserRouter>
+            </LlmProvider>
+            </GmailProvider>
+            </GoogleCalendarProvider>
+          </AppProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }

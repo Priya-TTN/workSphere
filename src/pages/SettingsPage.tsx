@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useAuth, getInitials } from '@/context/AuthContext'
+import { useTheme, type Theme } from '@/context/ThemeContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Toast } from '@/components/ui/Toast'
 import { Link } from 'react-router-dom'
 import { GoogleCalendarConnector } from '@/components/calendar/GoogleCalendarConnector'
 import { GmailConnector } from '@/components/email/GmailConnector'
-import { Settings, Brain } from 'lucide-react'
+import { Settings, Brain, Sun, Moon, Monitor } from 'lucide-react'
 
 export function SettingsPage() {
   const { userEmail, userName, userRole, updateUserName } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [displayName, setDisplayName] = useState(userName)
   const [saved, setSaved] = useState(false)
 
@@ -76,6 +78,32 @@ export function SettingsPage() {
           <Button className="mt-5" onClick={handleSave} disabled={!displayName.trim()}>
             Save Changes
           </Button>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900 mb-1">Appearance & Theme</h3>
+          <p className="text-sm text-slate-500 mb-4">Customize how WorkPilot looks on your device.</p>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { id: 'light', label: 'Light', icon: Sun },
+              { id: 'dark', label: 'Dark', icon: Moon },
+              { id: 'system', label: 'System', icon: Monitor },
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTheme(id as Theme)}
+                className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all ${
+                  theme === id
+                    ? 'border-purple-600 bg-purple-50/50 text-purple-700 font-semibold ring-2 ring-purple-600/20'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-xs">{label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         <Toast

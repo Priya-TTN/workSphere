@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Bell, Menu } from 'lucide-react'
+import { Bell, Menu, Sun, Moon } from 'lucide-react'
 import { UserMenu } from './UserMenu'
 import { NotificationPanel } from './NotificationPanel'
 import { UniversalSearch } from '@/components/search/UniversalSearch'
+import { useTheme } from '@/context/ThemeContext'
 import notificationsData from '@/data/notifications.json'
 import type { Notification } from '@/types'
 
@@ -11,6 +12,7 @@ interface TopHeaderProps {
 }
 
 export function TopHeader({ onMenuClick }: TopHeaderProps) {
+  const { isDarkMode, toggleTheme } = useTheme()
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>(
     notificationsData as Notification[]
@@ -29,7 +31,17 @@ export function TopHeader({ onMenuClick }: TopHeaderProps) {
 
       <UniversalSearch className="min-w-0" />
 
-      <div className="flex items-center gap-4 sm:gap-6 lg:gap-7 shrink-0 ml-2 sm:ml-4">
+      <div className="flex items-center gap-3 sm:gap-4 shrink-0 ml-2 sm:ml-4">
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="rounded-lg p-2 hover:bg-slate-100 transition-colors text-slate-500 hover:text-purple-600"
+          aria-label="Toggle theme"
+          title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {isDarkMode ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-slate-500" />}
+        </button>
+
         <div className="relative">
           <button
             onClick={() => setShowNotifications(!showNotifications)}
