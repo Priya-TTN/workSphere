@@ -93,63 +93,71 @@ export async function fetchIcsFeed(icalUrl: string): Promise<string> {
   const error = validateGoogleIcalUrl(normalized)
   if (error) throw new Error(error)
 
-  const controller = new AbortController()
+  const trySingleFetch = async (targetUrl: string, timeoutMs = 8000): Promise<string> => {
+    const fetchController = new AbortController()
+    const timer = setTimeout(() => fetchController.abort(), timeoutMs)
 
-  const trySingleFetch = async (targetUrl: string, timeoutMs = 4000): Promise<string> => {
-    const timeoutSignal = AbortSignal.timeout(timeoutMs)
-    const combinedSignal = controller.signal
-      ? AbortSignal.any([controller.signal, timeoutSignal])
-      : timeoutSignal
+    try {
+      const res = await fetch(targetUrl, {
+        headers: { Accept: 'text/calendar, text/plain, */*' },
+        signal: fetchController.signal,
+      })
 
-    const res = await fetch(targetUrl, {
-      headers: { Accept: 'text/calendar, text/plain, */*' },
-      signal: combinedSignal,
-    })
+      clearTimeout(timer)
 
-    if (!res.ok) {
-      let serverErr = ''
-      try {
-        const data = await res.json()
-        if (data?.error) serverErr = String(data.error)
-      } catch {}
-      throw new Error(serverErr || `HTTP ${res.status}`)
+      if (!res.ok) {
+        let serverErr = ''
+        try {
+          const data = await res.json()
+          if (data?.error) serverErr = String(data.error)
+        } catch {}
+        throw new Error(
+          serverErr || `Google Calendar returned HTTP ${res.status}. Check your secret iCal URL in Google Calendar settings.`
+        )
+      }
+
+      const text = await res.text()
+      if (!text.includes('BEGIN:VCALENDAR')) {
+        throw new Error('The URL did not return a valid calendar file. Confirm you copied the secret iCal address.')
+      }
+      return text
+    } catch (err) {
+      clearTimeout(timer)
+      throw err
     }
-
-    const text = await res.text()
-    if (!text.includes('BEGIN:VCALENDAR')) {
-      throw new Error('Invalid iCal calendar file structure.')
-    }
-    return text
   }
 
   const proxyUrl = toProxyUrl(normalized)
   const corsProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(normalized)}`
 
-  // Try dev server proxy first with 4s fast timeout
+  // 1. Primary: Try dev server proxy
   try {
-    const result = await trySingleFetch(proxyUrl, 4000)
-    controller.abort()
-    return result
+    return await trySingleFetch(proxyUrl, 8000)
   } catch (e) {
-    if (e instanceof Error && (e.message.includes('Google Calendar returned') || e.message.includes('Verify that'))) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (
+      msg.includes('Google Calendar returned') ||
+      msg.includes('Verify that') ||
+      msg.includes('Confirm you copied') ||
+      msg.includes('Use the secret')
+    ) {
       throw e
     }
   }
 
-  // Fast parallel fallback: Direct fetch & CORS proxy race
+  // 2. Secondary: Direct fetch
   try {
-    const result = await Promise.any([
-      trySingleFetch(normalized, 5000),
-      trySingleFetch(corsProxyUrl, 5000),
-    ])
-    controller.abort()
-    return result
-  } catch {
-    controller.abort()
-    throw new Error(
-      'Could not reach Google Calendar. Check your internet connection or verify your secret iCal URL in Google Calendar settings.'
-    )
-  }
+    return await trySingleFetch(normalized, 8000)
+  } catch {}
+
+  // 3. Tertiary: Public CORS proxy
+  try {
+    return await trySingleFetch(corsProxyUrl, 8000)
+  } catch {}
+
+  throw new Error(
+    'Could not reach Google Calendar. Please verify your secret iCal URL in Google Calendar settings, or check your internet connection/VPN.'
+  )
 }
 
 export function saveIcalUrl(icalUrl: string): void {
