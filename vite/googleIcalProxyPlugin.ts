@@ -2,6 +2,14 @@ import type { IncomingMessage, ServerResponse } from 'http'
 import https from 'node:https'
 import type { Plugin } from 'vite'
 
+function normalizeGooglePath(pathStr: string): string {
+  let decoded = pathStr
+  try {
+    decoded = decodeURIComponent(pathStr)
+  } catch {}
+  return decoded.replace(/@/g, '%40').replace(/#/g, '%23')
+}
+
 function fetchHttps(
   urlStr: string,
   headers: Record<string, string>,
@@ -16,10 +24,9 @@ function fetchHttps(
       urlStr,
       {
         headers,
-        timeout: 5_000,
+        timeout: 10_000,
       },
       (res) => {
-        // Handle redirects (301, 302, 307, 308)
         if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           const redirectUrl = new URL(res.headers.location, urlStr).toString()
           fetchHttps(redirectUrl, headers, maxRedirects - 1)
@@ -67,10 +74,8 @@ async function handleGoogleIcalProxy(req: IncomingMessage, res: ServerResponse) 
   let pathname = parts[0]
   const search = parts[1] ? `?${parts[1]}` : ''
 
-  // Ensure @ in email / calendar ID is encoded as %40 for calendar.google.com
-  if (pathname.includes('@')) {
-    pathname = pathname.replace(/@/g, '%40')
-  }
+  // Normalize path so email @ and calendar # are single-encoded (%40, %23)
+  pathname = normalizeGooglePath(pathname)
 
   // Auto append basic.ics if missing
   if (pathname.includes('/calendar/ical/') && !pathname.endsWith('.ics')) {
@@ -92,7 +97,7 @@ async function handleGoogleIcalProxy(req: IncomingMessage, res: ServerResponse) 
       res.setHeader('Content-Type', 'application/json')
       res.end(
         JSON.stringify({
-          error: `Google Calendar returned HTTP ${status}. Check that your secret iCal URL is copied correctly from Google Calendar settings.`,
+          error: `Google Calendar returned HTTP ${status}. Verify that you copied the complete Secret Address in iCal format from Google Calendar settings.`,
         })
       )
       return

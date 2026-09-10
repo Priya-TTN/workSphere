@@ -131,7 +131,7 @@ export async function fetchIcsFeed(icalUrl: string): Promise<string> {
     controller.abort()
     return result
   } catch (e) {
-    if (e instanceof Error && e.message.includes('Google Calendar returned HTTP')) {
+    if (e instanceof Error && (e.message.includes('Google Calendar returned') || e.message.includes('Verify that'))) {
       throw e
     }
   }
