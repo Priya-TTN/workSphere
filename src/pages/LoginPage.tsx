@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Logo } from '@/components/ui/Logo'
 import {
-  Zap,
   Sparkles,
   Mail,
   Lock,
@@ -141,15 +141,7 @@ export function LoginPage() {
           transition={{ duration: 0.5 }}
           className="relative z-10"
         >
-          <div className="flex items-center gap-3 mb-14">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-600 shadow-lg shadow-purple-900/40">
-              <Zap className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white tracking-tight">WorkPilot AI</h1>
-              <p className="text-xs text-slate-400 mt-0.5">Your Day. Simplified. Smarter.</p>
-            </div>
-          </div>
+          <Logo size="lg" showSubtext={true} lightText={true} className="mb-14" />
 
           <h2 className="text-[1.75rem] xl:text-3xl font-bold text-white leading-snug mb-5 max-w-md">
             Turn fragmented work into your smartest next action.
@@ -191,13 +183,7 @@ export function LoginPage() {
             <div className="absolute top-0 right-0 h-40 w-40 rounded-full bg-purple-600/20 blur-3xl" />
           </div>
           <div className="relative z-10 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-600">
-              <Zap className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-base font-bold text-white">WorkPilot AI</h1>
-              <p className="text-[11px] text-slate-400">Your Day. Simplified. Smarter.</p>
-            </div>
+            <Logo size="md" showSubtext={true} lightText={true} />
           </div>
           <p className="relative z-10 text-sm text-slate-400 mt-4 leading-relaxed">
             Turn fragmented work into your smartest next action.

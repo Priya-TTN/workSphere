@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Sparkles, Brain } from 'lucide-react'
+import { Brain } from 'lucide-react'
 import { WorkPilotChatPanel } from '@/components/chat/WorkPilotChatPanel'
 import { useWorkPilotChat } from '@/context/WorkPilotChatContext'
 
@@ -10,8 +10,8 @@ export function AskWorkPilotPage() {
     <div className="p-4 lg:p-6 max-w-[800px] mx-auto flex flex-col h-[calc(100vh-64px)]">
       <div className="mb-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-purple-600" />
+          <div className="flex items-center gap-2.5">
+            <img src="/logo.svg" alt="WorkPilot AI" className="h-7 w-7 rounded-lg shrink-0 object-contain" />
             <h2 className="text-2xl font-bold text-slate-900">Ask WorkPilot</h2>
           </div>
           <Link

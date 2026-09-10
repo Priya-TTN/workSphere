@@ -1,3 +1,4 @@
+import { Logo } from '@/components/ui/Logo'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   Home,
@@ -14,7 +15,6 @@ import {
   BarChart3,
   Settings,
   X,
-  Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -67,16 +67,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-navy-700/80">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-600">
-              <Zap className="h-4 w-4 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-[13px] font-bold tracking-tight text-white truncate">WorkPilot AI</h1>
-              <p className="text-[10px] text-slate-400 leading-tight truncate">Your Day. Simplified. Smarter.</p>
-            </div>
-          </div>
+        <div className="flex items-center justify-between px-4 py-4 border-b border-navy-700/80">
+          <Logo size="md" showSubtext={true} lightText={true} />
           <button
             onClick={onClose}
             className="lg:hidden rounded-md p-1 hover:bg-navy-700 transition-colors shrink-0"

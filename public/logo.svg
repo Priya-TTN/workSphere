@@ -19,17 +19,11 @@
     </filter>
   </defs>
 
-  <!-- Background squircle -->
   <rect width="512" height="512" rx="128" fill="url(#bg-grad)" />
-
-  <!-- Inner stroke highlight -->
   <rect x="12" y="12" width="488" height="488" rx="116" fill="none" stroke="#FFFFFF" stroke-opacity="0.2" stroke-width="8" />
 
-  <!-- Main emblem path: Stylized W Wings -->
   <g transform="translate(0, 16)">
     <path d="M 120 170 C 120 170 156 350 188 350 C 210 350 236 260 256 220 C 276 260 302 350 324 350 C 356 350 392 170 392 170 L 338 170 C 338 170 318 270 304 270 C 290 270 272 200 256 160 C 240 200 222 270 208 270 C 194 270 174 170 174 170 Z" fill="url(#icon-grad)" filter="url(#glow)"/>
-
-    <!-- AI Sparkle 4-point star accent -->
     <path d="M 256 85 Q 256 125 296 125 Q 256 125 256 165 Q 256 125 216 125 Q 256 125 256 85 Z" fill="url(#spark-grad)" />
     <circle cx="256" cy="125" r="5" fill="#FFFFFF" />
   </g>

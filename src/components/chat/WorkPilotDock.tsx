@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Expand, Sparkles, X } from 'lucide-react'
+import { Expand, X } from 'lucide-react'
 import { WorkPilotChatPanel } from './WorkPilotChatPanel'
 import { useWorkPilotChat } from '@/context/WorkPilotChatContext'
 
@@ -27,7 +27,7 @@ export function WorkPilotDock() {
           <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-2.5">
             <div className="min-w-0">
               <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
-                <Sparkles className="h-4 w-4 text-purple-600" />
+                <img src="/logo.svg" alt="WorkPilot AI" className="h-4 w-4 rounded shrink-0 object-contain" />
                 Ask WorkPilot
               </p>
               <p className="text-[11px] text-slate-500">
@@ -60,11 +60,11 @@ export function WorkPilotDock() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-purple-600 text-white shadow-lg shadow-purple-600/30 transition hover:bg-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
+        className="pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full bg-purple-600 text-white shadow-lg shadow-purple-600/30 transition hover:bg-purple-700 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:ring-offset-2"
         aria-label={open ? 'Close Ask WorkPilot' : 'Open Ask WorkPilot'}
         aria-expanded={open}
       >
-        {open ? <X className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+        {open ? <X className="h-5 w-5" /> : <img src="/logo.svg" alt="WorkPilot AI" className="h-7 w-7 rounded-md object-contain" />}
       </button>
     </div>
   )

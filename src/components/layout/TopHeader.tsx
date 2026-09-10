@@ -3,6 +3,7 @@ import { Bell, Menu, Sun, Moon } from 'lucide-react'
 import { UserMenu } from './UserMenu'
 import { NotificationPanel } from './NotificationPanel'
 import { UniversalSearch } from '@/components/search/UniversalSearch'
+import { Logo } from '@/components/ui/Logo'
 import { useTheme } from '@/context/ThemeContext'
 import notificationsData from '@/data/notifications.json'
 import type { Notification } from '@/types'
@@ -20,14 +21,17 @@ export function TopHeader({ onMenuClick }: TopHeaderProps) {
   const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
-    <header className="sticky top-0 z-30 flex h-[64px] items-center gap-4 sm:gap-6 lg:gap-8 border-b border-slate-200/90 bg-white/95 backdrop-blur-sm px-4 sm:px-6 lg:px-8 shrink-0 min-w-0">
-      <button
-        onClick={onMenuClick}
-        className="lg:hidden rounded-lg p-1.5 hover:bg-slate-100 transition-colors -ml-1 shrink-0"
-        aria-label="Open menu"
-      >
-        <Menu className="h-5 w-5 text-slate-600" />
-      </button>
+    <header className="sticky top-0 z-30 flex h-[64px] items-center gap-3 sm:gap-6 lg:gap-8 border-b border-slate-200/90 bg-white/95 backdrop-blur-sm px-4 sm:px-6 lg:px-8 shrink-0 min-w-0">
+      <div className="flex items-center gap-2 lg:hidden shrink-0">
+        <button
+          onClick={onMenuClick}
+          className="rounded-lg p-1.5 hover:bg-slate-100 transition-colors -ml-1 shrink-0"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5 text-slate-600" />
+        </button>
+        <Logo iconOnly size="sm" />
+      </div>
 
       <UniversalSearch className="min-w-0" />
 
