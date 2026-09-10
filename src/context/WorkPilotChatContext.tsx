@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { getAIResponse } from '@/services/aiSearch'
+import { generateBuiltInAiResponse } from '@/services/ai/builtInChatbot'
 import { chatWithLlm } from '@/services/ai/llmClient'
 import { WORKPILOT_SYSTEM_PROMPT, buildWorkContextPrompt, type WorkSnapshot } from '@/services/ai/contextEngine'
 import { mockEmailsToRecords, mockEventsToGoogle } from '@/services/ai/workSnapshot'
@@ -31,8 +31,8 @@ export interface ChatMessage {
 
 function greeting(isConfigured: boolean) {
   return isConfigured
-    ? 'I am connected to your LLM and can reason over Gmail, Calendar, Jira, Teams, and tasks. What do you need?'
-    : 'Add your LLM API URL on the AI Model page so I can reason over your real work data. Until then I will use the built-in assistant.'
+    ? 'I am connected to your custom LLM endpoint and can reason over Gmail, Calendar, Jira, Teams, and tasks. What do you need?'
+    : 'Hello! I am WorkPilot AI, your intelligent built-in work assistant. I analyze your Gmail, Calendar, Jira, Teams, tasks, and workday data. How can I help you today?'
 }
 
 interface WorkPilotChatContextType {
@@ -110,25 +110,13 @@ export function WorkPilotChatProvider({ children }: { children: ReactNode }) {
           const content = await chatWithLlm(settings, llmMessages)
           setMessages((prev) => [...prev, { role: 'assistant', content }])
         } else {
-          const result = getAIResponse(
-            trimmed,
-            snapshot.deadlines,
-            snapshot.activities,
-            snapshot.tasks,
-            snapshot.emails,
-            snapshot.events
-          )
+          const result = generateBuiltInAiResponse(trimmed, snapshot)
           setMessages((prev) => [
             ...prev,
             {
               role: 'assistant',
               content: result.answer,
-              items:
-                result.type === 'list'
-                  ? result.items
-                  : result.type === 'activity'
-                    ? result.activities?.map((activity) => `${activity.source}: ${activity.title}`)
-                    : undefined,
+              items: result.items,
             },
           ])
         }

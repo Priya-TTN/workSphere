@@ -78,14 +78,14 @@ export function SettingsPage() {
         />
 
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-base font-semibold text-slate-900 mb-2">AI assistant</h3>
+          <h3 className="text-base font-semibold text-slate-900 mb-2">AI Assistant</h3>
           <p className="text-sm text-slate-500 mb-4">
-            Add your LLM API URL so Ask WorkPilot can summarize mail, read the calendar, and plan the day.
+            WorkPilot includes an intelligent built-in AI chatbot operating on your workday data. You can also optionally connect a custom 3rd party LLM API endpoint.
           </p>
           <Link to="/ai-settings">
             <Button variant="outline">
               <Brain className="h-4 w-4" />
-              Open AI Model settings
+              Configure AI Model settings
             </Button>
           </Link>
         </div>

@@ -46,7 +46,7 @@ export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps)
             >
               {msg.role === 'assistant' && (
                 <div className="mb-1.5">
-                  <AIBadge label={isConfigured ? 'LLM' : 'Built-in'} />
+                  <AIBadge label={isConfigured ? 'External LLM' : 'Built-in AI'} />
                 </div>
               )}
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
