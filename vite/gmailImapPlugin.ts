@@ -148,23 +148,36 @@ async function handleGmailFetch(req: IncomingMessage, res: ServerResponse) {
     } catch {
       // ignore
     }
-    const raw = err instanceof Error ? err.message : String(err)
-    console.error('[Gmail IMAP Fetch Error]:', raw)
+    const errObj = (err ?? {}) as {
+      message?: string
+      responseText?: string
+      code?: string
+      command?: string
+      responseStatus?: string
+    }
+    const messageStr = errObj.message || String(err)
+    const responseText = errObj.responseText || ''
+    const code = errObj.code || ''
+    const command = errObj.command || ''
+    const fullLog = `${messageStr} ${responseText} ${code} ${command} ${errObj.responseStatus || ''}`
+    console.error('[Gmail IMAP Fetch Error]:', fullLog.trim())
 
-    const lower = raw.toLowerCase()
+    const lower = fullLog.toLowerCase()
     let error = 'Could not connect to Gmail. Check IMAP is enabled and use a Google App Password.'
 
     if (
+      command.toUpperCase() === 'LOGIN' ||
       lower.includes('auth') ||
       lower.includes('invalid credentials') ||
       lower.includes('login') ||
       lower.includes('denied') ||
       lower.includes('password') ||
       lower.includes('bad') ||
-      lower.includes('no [')
+      lower.includes('no [') ||
+      code.toUpperCase().includes('AUTH')
     ) {
       error =
-        'Gmail rejected the IMAP login. Ensure 2-Step Verification is active, IMAP is enabled in Gmail Settings, and you are using a 16-character App Password (not your main Google password).'
+        'Gmail rejected the IMAP login. Ensure 2-Step Verification is active, IMAP is enabled in Gmail Settings, and you are using a 16-character Google App Password (not your regular account password).'
     } else if (
       lower.includes('enotfound') ||
       lower.includes('eai_again') ||
@@ -176,8 +189,10 @@ async function handleGmailFetch(req: IncomingMessage, res: ServerResponse) {
       lower.includes('socket')
     ) {
       error = 'Could not reach imap.gmail.com (Port 993). Check your network, firewall, or VPN connection.'
-    } else if (raw) {
-      error = `Gmail IMAP error: ${raw}`
+    } else if (responseText) {
+      error = `Gmail IMAP error: ${responseText}`
+    } else if (messageStr) {
+      error = `Gmail IMAP error: ${messageStr}`
     }
 
     sendJson(res, 502, { error })
