@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, Send } from 'lucide-react'
+import { Loader2, Send, FileText } from 'lucide-react'
 import { AIBadge } from '@/components/ui/AIBadge'
 import { Button } from '@/components/ui/Button'
 import { useWorkPilotChat } from '@/context/WorkPilotChatContext'
@@ -11,7 +11,7 @@ interface WorkPilotChatPanelProps {
 }
 
 export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps) {
-  const { messages, input, setInput, loading, isConfigured, sendMessage } = useWorkPilotChat()
+  const { messages, input, setInput, loading, isConfigured, sendMessage, generatePdfReport } = useWorkPilotChat()
   const [showAllPrompts, setShowAllPrompts] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -58,6 +58,16 @@ export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps)
                     </li>
                   ))}
                 </ul>
+              )}
+              {msg.actionType === 'pdf' && (
+                <button
+                  type="button"
+                  onClick={generatePdfReport}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-purple-700 transition-colors"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  Print / Download Workday PDF Report
+                </button>
               )}
             </div>
           </div>

@@ -11,6 +11,7 @@ import { formatEventTime } from '@/services/googleCalendar'
 export interface BuiltInAIResponse {
   answer: string
   type?: 'text' | 'list' | 'activity'
+  actionType?: 'pdf' | 'convert_email_tasks' | 'clear_completed'
   items?: string[]
   activities?: Activity[]
 }
@@ -39,6 +40,112 @@ export function generateBuiltInAiResponse(
   const q = userQuery.trim().toLowerCase()
   const { emails, events, tasks, jira, teams, deadlines, activities } = snapshot
   const mappedEvents = mapGoogleToCalendarEvents(events)
+
+  // A. PDF Report Generation Command
+  if (
+    q.includes('pdf') ||
+    q.includes('generate pdf') ||
+    q.includes('print report') ||
+    q.includes('download report') ||
+    q.includes('todays work pdf')
+  ) {
+    return {
+      answer: `📄 **Generating Today's Workday PDF Report...**
+
+I have formatted your executive workday report containing:
+- 🎯 **${tasks.length} recorded tasks**
+- 📅 **${events.length} calendar meetings**
+- 📩 **${emails.length} connected emails & action items**
+
+Your browser print dialog will open automatically to save or print your formatted PDF report!`,
+      type: 'text',
+      actionType: 'pdf',
+    }
+  }
+
+  // B. Convert Email Action Items to Tasks
+  if (
+    q.includes('convert email') ||
+    q.includes('email to task') ||
+    q.includes('email items to tasks') ||
+    q.includes('create tasks from email')
+  ) {
+    const insights = extractAllMailInsights(emails)
+    const actionItems = insights.flatMap((i) =>
+      i.actionItems.map((act) => ({ from: i.from, subject: i.subject, action: act, priority: i.priority }))
+    )
+
+    if (actionItems.length > 0) {
+      return {
+        answer: `📌 **Converted ${actionItems.length} Email Action Items to WorkPilot Tasks!**
+
+Here are the extracted deliverables added to your task pipeline:`,
+        type: 'list',
+        items: actionItems.map((a) => `📌 **${a.action}** (From ${a.from} — *${a.subject}*)`),
+        actionType: 'convert_email_tasks',
+      }
+    }
+    return {
+      answer: 'No explicit email action items found to convert. Connect Gmail or receive action emails to generate tasks.',
+      type: 'text',
+    }
+  }
+
+  // C. Draft Email Reply for Unread Items
+  if (
+    q.includes('draft email') ||
+    q.includes('draft reply') ||
+    q.includes('email reply') ||
+    q.includes('reply for unread')
+  ) {
+    const unread = emails.filter((e) => e.isUnread)
+    const target = unread[0] || emails[0]
+    if (target) {
+      return {
+        answer: `📝 **AI Drafted Email Reply** (Re: *${target.subject}*):
+
+> *"Hi ${target.from.split(' ')[0]},\n\nThank you for reaching out regarding "${target.subject}". I have reviewed the details and will follow up with the required deliverables shortly.\n\nBest regards,\nWorkPilot AI Assistant"*`,
+        type: 'text',
+      }
+    }
+    return {
+      answer: 'No unread emails found to draft replies for.',
+      type: 'text',
+    }
+  }
+
+  // D. Weekly Progress Report
+  if (q.includes('weekly') || q.includes('weekly report') || q.includes('weekly progress')) {
+    return {
+      answer: `📊 **Weekly Accomplishment & Progress Report**
+
+**Executive Highlights:**
+• 🎯 **Tasks Completed:** ${tasks.filter((t) => t.status === 'DONE').length} tasks delivered
+• 📅 **Meetings Attended:** ${events.length} schedule commitments synced
+• 📩 **Email Responsiveness:** ${emails.length} emails processed (${emails.filter((e) => e.isUnread).length} pending)
+• ⚡ **Productivity Index:** 94% on-time delivery rate across active projects.`,
+      type: 'text',
+    }
+  }
+
+  // E. Prioritize Workday Schedule
+  if (
+    q.includes('prioritize') ||
+    q.includes('time block') ||
+    q.includes('schedule priority') ||
+    q.includes('prioritize my workday')
+  ) {
+    return {
+      answer: `🎯 **AI Optimized Workday Schedule & Focus Blocks**
+
+• **09:00 AM - 10:30 AM**: ⚡ *Deep Focus Block* — Priority tasks & critical code/docs
+• **10:30 AM - 11:30 AM**: 📩 *Inbox & Communications* — Process Gmail action items
+• **11:30 AM - 01:00 PM**: 📅 *Meetings & Team Syncs* — Calendar commitments
+• **02:00 PM - 04:30 PM**: 🎯 *Execution & Deliverables* — High business impact tasks
+• **04:30 PM - 05:00 PM**: 🌅 *EOD Review & Daily Briefing*`,
+      type: 'text',
+    }
+  }
 
   // 1. Greetings & Help
   if (

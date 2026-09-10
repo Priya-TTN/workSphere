@@ -23,10 +23,13 @@ import teamsData from '@/data/teams.json'
 import calendarData from '@/data/calendar.json'
 import type { CalendarEvent, Deadline, Email, JiraTicket, TeamsMessage } from '@/types'
 
+import { generateWorkdayPdf } from '@/services/reports/workdayPdf'
+
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
   items?: string[]
+  actionType?: 'pdf' | 'convert_email_tasks' | 'clear_completed'
 }
 
 function greeting(isConfigured: boolean) {
@@ -42,6 +45,7 @@ interface WorkPilotChatContextType {
   loading: boolean
   isConfigured: boolean
   sendMessage: (userMsg: string) => Promise<void>
+  generatePdfReport: () => void
 }
 
 const WorkPilotChatContext = createContext<WorkPilotChatContextType | null>(null)
@@ -80,6 +84,10 @@ export function WorkPilotChatProvider({ children }: { children: ReactNode }) {
     }
   }, [activities, calendarConnected, gmailConnected, inbox, liveEvents, tasks, todayEvents])
 
+  const generatePdfReport = useCallback(() => {
+    generateWorkdayPdf(snapshot)
+  }, [snapshot])
+
   useEffect(() => {
     setMessages((prev) => {
       if (prev.length !== 1 || prev[0].role !== 'assistant') return prev
@@ -109,6 +117,9 @@ export function WorkPilotChatProvider({ children }: { children: ReactNode }) {
           ]
           const content = await chatWithLlm(settings, llmMessages)
           setMessages((prev) => [...prev, { role: 'assistant', content }])
+          if (trimmed.toLowerCase().includes('pdf')) {
+            generateWorkdayPdf(snapshot)
+          }
         } else {
           const result = generateBuiltInAiResponse(trimmed, snapshot)
           setMessages((prev) => [
@@ -117,8 +128,12 @@ export function WorkPilotChatProvider({ children }: { children: ReactNode }) {
               role: 'assistant',
               content: result.answer,
               items: result.items,
+              actionType: result.actionType,
             },
           ])
+          if (result.actionType === 'pdf') {
+            generateWorkdayPdf(snapshot)
+          }
         }
       } catch (err) {
         setMessages((prev) => [
@@ -137,7 +152,7 @@ export function WorkPilotChatProvider({ children }: { children: ReactNode }) {
 
   return (
     <WorkPilotChatContext.Provider
-      value={{ messages, input, setInput, loading, isConfigured, sendMessage }}
+      value={{ messages, input, setInput, loading, isConfigured, sendMessage, generatePdfReport }}
     >
       {children}
     </WorkPilotChatContext.Provider>
