@@ -55,6 +55,11 @@ export function parseGmailFeedUrl(raw: string): { email: string; appPassword: st
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error('The email in the Gmail iCal URL looks invalid.')
   }
+  if (/^[0-9a-f]{32}$/i.test(appPassword)) {
+    throw new Error(
+      'That is a Google Calendar secret token (32 hex characters). For Gmail, generate a 16-letter App Password at myaccount.google.com/apppasswords.'
+    )
+  }
   if (appPassword.length < 8) {
     throw new Error('The private- token should be your Google App Password (16 characters).')
   }
