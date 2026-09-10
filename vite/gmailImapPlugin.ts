@@ -165,7 +165,10 @@ async function handleGmailFetch(req: IncomingMessage, res: ServerResponse) {
     const lower = fullLog.toLowerCase()
     let error = 'Could not connect to Gmail. Check IMAP is enabled and use a Google App Password.'
 
-    if (
+    if (lower.includes('lookup failed')) {
+      error =
+        'Gmail account lookup failed. Replace "you@email.com" in the URL with your real Gmail or Google Workspace email address.'
+    } else if (
       command.toUpperCase() === 'LOGIN' ||
       lower.includes('auth') ||
       lower.includes('invalid credentials') ||

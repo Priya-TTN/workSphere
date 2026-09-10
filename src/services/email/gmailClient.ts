@@ -52,6 +52,18 @@ export function parseGmailFeedUrl(raw: string): { email: string; appPassword: st
 
   const email = decodeURIComponent(match[1])
   const appPassword = decodeURIComponent(match[2]).replace(/\s+/g, '')
+  const lowerEmail = email.toLowerCase().trim()
+
+  if (
+    lowerEmail === 'you@email.com' ||
+    lowerEmail === 'you@gmail.com' ||
+    lowerEmail.includes('your.email') ||
+    lowerEmail.includes('youremail') ||
+    lowerEmail.includes('example.com')
+  ) {
+    throw new Error('Replace "you@email.com" in the URL with your actual email address (e.g. harsh.vardhan1@tothenew.com).')
+  }
+
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new Error('The email in the Gmail iCal URL looks invalid.')
   }
