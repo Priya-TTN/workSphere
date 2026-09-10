@@ -1,6 +1,10 @@
 import { Sun } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 
 export function GreetingHeader() {
+  const { userName } = useAuth()
+  const firstName = userName.trim().split(/\s+/)[0] || 'there'
+
   const today = new Date('2025-06-10')
   const formatted = today.toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -13,7 +17,7 @@ export function GreetingHeader() {
     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-5 lg:mb-6">
       <div className="min-w-0">
         <h2 className="text-xl lg:text-[22px] font-bold text-slate-900 tracking-tight leading-tight">
-          Good Morning, Harsh!
+          Good Morning, {firstName}!
         </h2>
         <p className="text-[13px] text-slate-500 mt-1 leading-relaxed">
           Here&apos;s your workday at a glance. Stay focused, you&apos;ve got this!

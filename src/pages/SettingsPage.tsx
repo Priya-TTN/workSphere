@@ -1,6 +1,5 @@
-import { useState } from 'react'
-import { useAuth } from '@/context/AuthContext'
-import userData from '@/data/user.json'
+import { useState, useEffect } from 'react'
+import { useAuth, getInitials } from '@/context/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Toast } from '@/components/ui/Toast'
@@ -9,19 +8,21 @@ import { GoogleCalendarConnector } from '@/components/calendar/GoogleCalendarCon
 import { GmailConnector } from '@/components/email/GmailConnector'
 import { Settings, Brain } from 'lucide-react'
 
-const DISPLAY_NAME_KEY = 'workpilot_display_name'
-
 export function SettingsPage() {
-  const { userEmail } = useAuth()
-  const [displayName, setDisplayName] = useState(
-    () => localStorage.getItem(DISPLAY_NAME_KEY) ?? userData.name
-  )
+  const { userEmail, userName, userRole, updateUserName } = useAuth()
+  const [displayName, setDisplayName] = useState(userName)
   const [saved, setSaved] = useState(false)
 
+  useEffect(() => {
+    setDisplayName(userName)
+  }, [userName])
+
   const handleSave = () => {
-    localStorage.setItem(DISPLAY_NAME_KEY, displayName.trim())
+    updateUserName(displayName)
     setSaved(true)
   }
+
+  const currentInitials = getInitials(displayName || userName)
 
   return (
     <div className="p-4 lg:p-6 max-w-[700px] mx-auto">
@@ -38,11 +39,11 @@ export function SettingsPage() {
           <h3 className="text-base font-semibold text-slate-900 mb-4">Profile</h3>
           <div className="flex items-center gap-4 mb-6">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-purple-600 text-xl font-bold text-white">
-              {userData.avatar}
+              {currentInitials}
             </div>
             <div>
               <p className="text-lg font-semibold text-slate-800">{displayName}</p>
-              <p className="text-sm text-slate-500">{userData.role}</p>
+              <p className="text-sm text-slate-500">{userRole}</p>
             </div>
           </div>
           <div className="space-y-4">
@@ -62,7 +63,7 @@ export function SettingsPage() {
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700 mb-1.5 block">Role</label>
-              <Input value={userData.role} readOnly />
+              <Input value={userRole} readOnly />
             </div>
           </div>
           <Button className="mt-4" onClick={handleSave} disabled={!displayName.trim()}>

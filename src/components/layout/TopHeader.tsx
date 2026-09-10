@@ -4,7 +4,6 @@ import { UserMenu } from './UserMenu'
 import { NotificationPanel } from './NotificationPanel'
 import { UniversalSearch } from '@/components/search/UniversalSearch'
 import notificationsData from '@/data/notifications.json'
-import userData from '@/data/user.json'
 import type { Notification } from '@/types'
 
 interface TopHeaderProps {
@@ -50,7 +49,7 @@ export function TopHeader({ onMenuClick }: TopHeaderProps) {
             />
           )}
         </div>
-        <UserMenu user={userData} />
+        <UserMenu />
       </div>
     </header>
   )
