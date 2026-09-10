@@ -16,7 +16,7 @@ function fetchHttps(
       urlStr,
       {
         headers,
-        timeout: 20_000,
+        timeout: 5_000,
       },
       (res) => {
         // Handle redirects (301, 302, 307, 308)
