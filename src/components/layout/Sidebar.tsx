@@ -18,29 +18,32 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+import { useGmail } from '@/context/GmailContext'
+
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
 }
 
-const navItems = [
-  { to: '/dashboard', label: 'Home', icon: Home },
-  { to: '/dashboard?view=workday', label: 'My Workday', icon: CalendarDays },
-  { to: '/tasks', label: 'Tasks', icon: CheckSquare },
-  { to: '/emails', label: 'Emails', icon: Mail, badge: 7 },
-  { to: '/teams', label: 'Teams', icon: Users, badge: 4 },
-  { to: '/jira', label: 'Jira', icon: LayoutGrid, badge: 5 },
-  { to: '/calendar', label: 'Calendar', icon: Calendar },
-  { to: '/documents', label: 'Files & Documents', icon: FileText },
-  { to: '/excel', label: 'Excel Insights', icon: Table2 },
-  { to: '/ask-workpilot', label: 'Ask WorkPilot', icon: Sparkles },
-  { to: '/ai-settings', label: 'AI Model', icon: Brain },
-  { to: '/reports', label: 'Reports', icon: BarChart3 },
-  { to: '/settings', label: 'Settings', icon: Settings },
-]
-
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation()
+  const { unseenCount } = useGmail()
+
+  const navItems = [
+    { to: '/dashboard', label: 'Home', icon: Home },
+    { to: '/dashboard?view=workday', label: 'My Workday', icon: CalendarDays },
+    { to: '/tasks', label: 'Tasks', icon: CheckSquare },
+    { to: '/emails', label: 'Emails', icon: Mail, badge: unseenCount > 0 ? unseenCount : undefined },
+    { to: '/teams', label: 'Teams', icon: Users },
+    { to: '/jira', label: 'Jira', icon: LayoutGrid },
+    { to: '/calendar', label: 'Calendar', icon: Calendar },
+    { to: '/documents', label: 'Files & Documents', icon: FileText },
+    { to: '/excel', label: 'Excel Insights', icon: Table2 },
+    { to: '/ask-workpilot', label: 'Ask WorkPilot', icon: Sparkles },
+    { to: '/ai-settings', label: 'AI Model', icon: Brain },
+    { to: '/reports', label: 'Reports', icon: BarChart3 },
+    { to: '/settings', label: 'Settings', icon: Settings },
+  ]
 
   const isActive = (to: string) => {
     const [path, search] = to.split('?')
