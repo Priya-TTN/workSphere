@@ -132,14 +132,15 @@ export async function fetchIcsFeed(icalUrl: string): Promise<string> {
 
   // 1. Primary: Try dev server proxy
   try {
-    return await trySingleFetch(proxyUrl, 8000)
+    return await trySingleFetch(proxyUrl, 10000)
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     if (
       msg.includes('Google Calendar returned') ||
       msg.includes('Verify that') ||
       msg.includes('Confirm you copied') ||
-      msg.includes('Use the secret')
+      msg.includes('Use the secret') ||
+      msg.includes('invalid content')
     ) {
       throw e
     }
