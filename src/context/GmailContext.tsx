@@ -42,7 +42,7 @@ const GmailContext = createContext<GmailContextType | null>(null)
 
 export function GmailProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(isGmailConnected)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
   const [emailAddress, setEmailAddress] = useState<string | null>(getStoredGmailEmail)
@@ -84,14 +84,11 @@ export function GmailProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = getStoredGmailCredentials()
-    if (!stored) {
-      setIsLoading(false)
-      return
-    }
-    if (localStorage.getItem('workpilot_cached_inbox')) {
+    if (stored) {
+      void loadInbox(stored.email, stored.appPassword)
+    } else {
       setIsLoading(false)
     }
-    void loadInbox(stored.email, stored.appPassword)
   }, [loadInbox])
 
   const connect = useCallback(

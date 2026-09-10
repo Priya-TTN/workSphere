@@ -286,7 +286,7 @@ export function CalendarPage() {
 
       {/* Events list */}
       {isConnected ? (
-        isFetching ? (
+        isFetching && events.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
             <span className="ml-2 text-sm text-slate-500">Fetching events…</span>

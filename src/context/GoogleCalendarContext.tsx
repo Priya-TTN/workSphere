@@ -46,7 +46,7 @@ const GoogleCalendarContext = createContext<GoogleCalendarContextType | null>(nu
 
 export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(isGoogleCalendarConnected)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const [icsText, setIcsText] = useState<string | null>(() => {
     return localStorage.getItem('workpilot_cached_ics')
   })
@@ -90,14 +90,11 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = getStoredIcalUrl()
-    if (!stored) {
-      setIsLoading(false)
-      return
-    }
-    if (localStorage.getItem('workpilot_cached_ics')) {
+    if (stored) {
+      void loadFeed(stored)
+    } else {
       setIsLoading(false)
     }
-    void loadFeed(stored)
   }, [loadFeed])
 
   useEffect(() => {
