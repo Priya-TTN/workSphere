@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { Mail, Loader2, AlertCircle } from 'lucide-react'
+import { Mail, Loader2, AlertCircle, Sparkles, Video } from 'lucide-react'
 import emailsData from '@/data/emails.json'
 import type { Email } from '@/types'
 import { useGmail } from '@/context/GmailContext'
 import { formatRelativeTimeLive } from '@/lib/utils'
 import { formatEmailPreview } from '@/services/email/formatEmailBody'
+import { extractMailInsight } from '@/services/email/emailExtractor'
 import {
   dashboardCard,
   dashboardCardPadding,
@@ -24,7 +25,14 @@ export function EmailInboxCard() {
     return (
       <div className={`${dashboardCard} ${dashboardCardPadding}`}>
         <div className={dashboardCardHeader}>
-          <h3 className={dashboardCardTitle}>Inbox glance</h3>
+          <div className="flex items-center gap-2">
+            <h3 className={dashboardCardTitle}>Inbox glance</h3>
+            {unseenCount > 0 && (
+              <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                {unseenCount} unread
+              </span>
+            )}
+          </div>
           <button onClick={() => navigate('/emails')} className={dashboardLink}>
             View All →
           </button>
@@ -42,31 +50,49 @@ export function EmailInboxCard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {unseenCount > 0 && (
-              <p className="text-[11px] text-blue-600 font-medium">{unseenCount} unread</p>
-            )}
-            {glance.map((email) => (
-              <button
-                key={email.id}
-                onClick={() => navigate('/emails')}
-                className="w-full text-left"
-              >
-                <p className="text-[13px] font-medium text-slate-800 leading-snug truncate">
-                  {email.isUnread ? (
-                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500 mr-1.5 align-middle" />
-                  ) : null}
-                  {email.subject}
-                </p>
-                <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                  {email.from} · {formatRelativeTimeLive(email.receivedAt)}
-                </p>
-                {email.preview && (
-                  <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                    {formatEmailPreview(email.bodyText || email.preview, 90)}
-                  </p>
-                )}
-              </button>
-            ))}
+            {glance.map((email) => {
+              const insight = extractMailInsight(email)
+              return (
+                <button
+                  key={email.id}
+                  onClick={() => navigate('/emails')}
+                  className="w-full text-left rounded-lg p-1.5 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[13px] font-medium text-slate-800 leading-snug truncate">
+                      {email.isUnread ? (
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500 mr-1.5 align-middle" />
+                      ) : null}
+                      {email.subject}
+                    </p>
+                    <span className="text-[10px] text-slate-400 shrink-0">
+                      {formatRelativeTimeLive(email.receivedAt)}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate mt-0.5">{email.from}</p>
+
+                  {insight.actionItems.length > 0 ? (
+                    <p className="text-[11px] font-medium text-purple-600 truncate mt-1 flex items-center gap-1 bg-purple-50 px-1.5 py-0.5 rounded">
+                      <Sparkles className="h-3 w-3 shrink-0" />
+                      {insight.actionItems[0]}
+                    </p>
+                  ) : (
+                    email.preview && (
+                      <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                        {formatEmailPreview(email.bodyText || email.preview, 80)}
+                      </p>
+                    )
+                  )}
+
+                  {insight.keyLinks.length > 0 && (
+                    <p className="text-[10px] text-blue-600 mt-0.5 flex items-center gap-1 font-medium">
+                      <Video className="h-3 w-3" />
+                      Video link included
+                    </p>
+                  )}
+                </button>
+              )
+            })}
           </div>
         )}
       </div>

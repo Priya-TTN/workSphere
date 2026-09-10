@@ -5,6 +5,7 @@ import type { WorkSnapshot } from '@/services/ai/contextEngine'
 import { calculateWorkload, getDeferRecommendations } from '@/services/workloadCalculator'
 import { getRecommendedTask, WORKDAY_DATE } from '@/services/taskRecommendation'
 import { buildInboxBrief } from '@/services/ai/emailContext'
+import { extractAllMailInsights } from '@/services/email/emailExtractor'
 import { formatEventTime } from '@/services/googleCalendar'
 
 export interface BuiltInAIResponse {
@@ -324,12 +325,66 @@ I analyze all your work data in real time across:
     }
   }
 
-  // 10. Email & Inbox
-  if (q.includes('email') || q.includes('inbox') || q.includes('gmail') || q.includes('unread')) {
+  // 10. Email & Inbox (Action Items, Meeting Requests, Unread Summaries)
+  if (
+    q.includes('email') ||
+    q.includes('inbox') ||
+    q.includes('gmail') ||
+    q.includes('unread') ||
+    q.includes('action item') ||
+    q.includes('meeting request')
+  ) {
     if (emails && emails.length > 0) {
+      const insights = extractAllMailInsights(emails)
+      const actionItems = insights.flatMap((i) =>
+        i.actionItems.map((act) => `📌 **From ${i.from}** (*${i.subject}*): ${act}`)
+      )
+      const meetingRequests = insights.flatMap((i) =>
+        i.meetingRequests.map((meet) => `📅 **From ${i.from}** (*${i.subject}*): ${meet}`)
+      )
+      const unreadList = emails.filter((e) => e.isUnread)
+
+      if (q.includes('action item') || q.includes('action items')) {
+        if (actionItems.length > 0) {
+          return {
+            answer: `📩 **Extracted Action Items from Email (${actionItems.length} found):**`,
+            type: 'list',
+            items: actionItems.slice(0, 8),
+          }
+        }
+        return {
+          answer: 'No explicit action items found in your recent emails. You are all caught up!',
+          type: 'text',
+        }
+      }
+
+      if (q.includes('meeting request') || q.includes('meeting requests')) {
+        if (meetingRequests.length > 0) {
+          return {
+            answer: `📅 **Meeting Requests & Invites in Inbox (${meetingRequests.length} found):**`,
+            type: 'list',
+            items: meetingRequests.slice(0, 8),
+          }
+        }
+        return {
+          answer: 'No pending meeting requests detected in your recent emails.',
+          type: 'text',
+        }
+      }
+
+      if (q.includes('unread')) {
+        return {
+          answer: `📬 **Unread Email Summary (${unreadList.length} unread of ${emails.length} total):**`,
+          type: 'list',
+          items: (unreadList.length > 0 ? unreadList : emails).slice(0, 6).map(
+            (e) => `• **${e.from}**: *${e.subject}* — ${e.preview || 'No preview'}`
+          ),
+        }
+      }
+
       const brief = buildInboxBrief(emails)
       return {
-        answer: `📬 **Inbox Overview:** ${emails.length} total messages (${brief.unread} unread, ${brief.meetingCount} meeting signals).\n\nTop items:`,
+        answer: `📬 **Inbox Overview:** ${emails.length} total messages (${brief.unread} unread, ${actionItems.length} action items, ${meetingRequests.length} meeting requests).\n\nTop Email Highlights:`,
         type: 'list',
         items: brief.bullets,
       }
