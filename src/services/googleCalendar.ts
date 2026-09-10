@@ -93,30 +93,55 @@ export async function fetchIcsFeed(icalUrl: string): Promise<string> {
   const error = validateGoogleIcalUrl(normalized)
   if (error) throw new Error(error)
 
-  const response = await fetch(toProxyUrl(normalized), {
-    headers: { Accept: 'text/calendar, text/plain, */*' },
-  })
+  // 1. Try Vite dev server proxy first
+  try {
+    const response = await fetch(toProxyUrl(normalized), {
+      headers: { Accept: 'text/calendar, text/plain, */*' },
+    })
 
-  if (!response.ok) {
-    let message = ''
-    try {
-      const data = await response.json()
-      if (data && typeof data === 'object' && 'error' in data) {
-        message = String(data.error)
+    if (response.ok) {
+      const text = await response.text()
+      if (text.includes('BEGIN:VCALENDAR')) return text
+    } else {
+      let serverErr = ''
+      try {
+        const data = await response.json()
+        if (data?.error) serverErr = String(data.error)
+      } catch {}
+      if (serverErr && !serverErr.includes('Could not reach Google Calendar')) {
+        throw new Error(serverErr)
       }
-    } catch {}
-    throw new Error(
-      message ||
-        `Google Calendar returned HTTP ${response.status}. Please check your secret iCal URL in Google Calendar settings.`
-    )
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.includes('Google Calendar returned HTTP')) {
+      throw e
+    }
   }
 
-  const text = await response.text()
-  if (!text.includes('BEGIN:VCALENDAR')) {
-    throw new Error('The URL did not return a valid calendar file. Confirm you copied the secret iCal address.')
-  }
+  // 2. Fallback: Try direct fetch
+  try {
+    const directRes = await fetch(normalized, {
+      headers: { Accept: 'text/calendar, text/plain, */*' },
+    })
+    if (directRes.ok) {
+      const text = await directRes.text()
+      if (text.includes('BEGIN:VCALENDAR')) return text
+    }
+  } catch {}
 
-  return text
+  // 3. Fallback: Public CORS proxy
+  try {
+    const corsProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(normalized)}`
+    const proxyRes = await fetch(corsProxyUrl)
+    if (proxyRes.ok) {
+      const text = await proxyRes.text()
+      if (text.includes('BEGIN:VCALENDAR')) return text
+    }
+  } catch {}
+
+  throw new Error(
+    'Could not reach Google Calendar. Please verify your secret iCal URL in Google Calendar settings, or check your internet connection/VPN.'
+  )
 }
 
 export function saveIcalUrl(icalUrl: string): void {
