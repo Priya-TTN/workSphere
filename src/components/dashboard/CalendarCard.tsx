@@ -22,15 +22,24 @@ function TimelineDot() {
 
 export function CalendarCard() {
   const navigate = useNavigate()
-  const { isConnected, todayEvents, isFetching } = useGoogleCalendar()
+  const { isConnected, todayEvents, upcomingEvents, isFetching } = useGoogleCalendar()
 
-  // ── Google Calendar events for today ──────────────────────────────────────
+  // ── Google Calendar events ────────────────────────────────────────────────
+  const displayEvents = todayEvents.length > 0 ? todayEvents : upcomingEvents
+  const cardTitle = todayEvents.length > 0 ? "Today's Calendar" : upcomingEvents.length > 0 ? "Upcoming Schedule" : "Today's Calendar"
 
   if (isConnected) {
     return (
       <div className={`${dashboardCard} ${dashboardCardPadding}`}>
         <div className={dashboardCardHeader}>
-          <h3 className={dashboardCardTitle}>Today&apos;s Calendar</h3>
+          <div className="flex items-center gap-2">
+            <h3 className={dashboardCardTitle}>{cardTitle}</h3>
+            {todayEvents.length === 0 && upcomingEvents.length > 0 && (
+              <span className="text-[10px] font-semibold bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-300 px-2 py-0.5 rounded-full border border-purple-200/60">
+                Next 7 Days
+              </span>
+            )}
+          </div>
           <button onClick={() => navigate('/calendar')} className={dashboardLink}>
             View All →
           </button>
@@ -41,18 +50,18 @@ export function CalendarCard() {
             <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
             <span className="text-xs text-slate-400">Loading events…</span>
           </div>
-        ) : todayEvents.length === 0 ? (
+        ) : displayEvents.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <CalendarDays className="h-7 w-7 text-slate-300 mb-2" />
-            <p className="text-xs text-slate-400">No events today</p>
+            <p className="text-xs text-slate-400">No events found in calendar</p>
           </div>
         ) : (
           <div className="relative">
-            <div className="absolute left-[52px] top-2 bottom-2 w-px bg-slate-200" />
+            <div className="absolute left-[52px] top-2 bottom-2 w-px bg-slate-200 dark:bg-slate-800" />
             <div className="space-y-0">
-              {todayEvents.map((event: GoogleCalendarEvent, index) => {
+              {displayEvents.slice(0, 5).map((event: GoogleCalendarEvent, index) => {
                 const startTime = formatEventTime(event.start.dateTime ?? event.start.date)
-                const isLast = index === todayEvents.length - 1
+                const isLast = index === Math.min(displayEvents.length, 5) - 1
                 const isOnline =
                   event.location?.toLowerCase().includes('meet') ||
                   event.location?.toLowerCase().includes('teams') ||
@@ -61,14 +70,14 @@ export function CalendarCard() {
                 return (
                   <div key={event.id} className={`flex gap-0 ${!isLast ? 'pb-4' : ''}`}>
                     <div className="w-[44px] shrink-0 pt-0.5 text-right pr-2">
-                      <span className="text-[11px] font-semibold text-slate-600 tabular-nums leading-none">
+                      <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 tabular-nums leading-none">
                         {startTime === 'All day' ? 'All' : startTime}
                       </span>
                     </div>
                     <div className="relative flex flex-1 min-w-0 pl-3">
                       <TimelineDot />
                       <div className="min-w-0">
-                        <p className="text-[13px] font-medium text-slate-800 leading-snug">
+                        <p className="text-[13px] font-medium text-slate-800 dark:text-slate-100 leading-snug truncate">
                           {event.summary}
                         </p>
                         {event.location && (

@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import {
   Calendar,
   Users,
@@ -9,10 +9,13 @@ import {
   CalendarRange,
   CalendarDays,
   ExternalLink,
+  Save,
+  Download,
 } from 'lucide-react'
 import calendarData from '@/data/calendar.json'
 import type { CalendarEvent } from '@/types'
 import { Button } from '@/components/ui/Button'
+import { Toast } from '@/components/ui/Toast'
 import { GoogleCalendarConnector } from '@/components/calendar/GoogleCalendarConnector'
 import { useGoogleCalendar } from '@/context/GoogleCalendarContext'
 import {
@@ -43,6 +46,38 @@ function formatDisplayDate(date: Date): string {
 
 function formatShortDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function downloadIcsRange(events: GoogleCalendarEvent[], start: Date, end: Date) {
+  let icsContent = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//WorkPilot AI//EN\n'
+  for (const event of events) {
+    icsContent += 'BEGIN:VEVENT\n'
+    icsContent += `SUMMARY:${event.summary || 'Event'}\n`
+    if (event.start.dateTime) {
+      icsContent += `DTSTART:${event.start.dateTime.replace(/[-:]/g, '')}\n`
+    } else if (event.start.date) {
+      icsContent += `DTSTART;VALUE=DATE:${event.start.date.replace(/-/g, '')}\n`
+    }
+    if (event.end.dateTime) {
+      icsContent += `DTEND:${event.end.dateTime.replace(/[-:]/g, '')}\n`
+    } else if (event.end.date) {
+      icsContent += `DTEND;VALUE=DATE:${event.end.date.replace(/-/g, '')}\n`
+    }
+    if (event.description) icsContent += `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}\n`
+    if (event.location) icsContent += `LOCATION:${event.location}\n`
+    icsContent += 'END:VEVENT\n'
+  }
+  icsContent += 'END:VCALENDAR\n'
+
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `workpilot-calendar-${toDateString(start)}-to-${toDateString(end)}.ics`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 // ─── Event card ───────────────────────────────────────────────────────────────
@@ -111,8 +146,6 @@ function GoogleEventCard({ event }: { event: GoogleCalendarEvent }) {
   )
 }
 
-
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export function CalendarPage() {
@@ -128,7 +161,18 @@ export function CalendarPage() {
     setRangeStart,
     rangeEnd,
     setRangeEnd,
+    saveRange,
   } = useGoogleCalendar()
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  const handleSaveRange = () => {
+    saveRange(rangeStart, rangeEnd)
+    downloadIcsRange(events, rangeStart, rangeEnd)
+    setToastMessage(
+      `Saved calendar range: ${formatShortDate(rangeStart)} to ${formatShortDate(rangeEnd)} (${events.length} events exported)`
+    )
+  }
 
   // Single-day navigation
   const goToPrev = useCallback(() => setSelectedDate(addDays(selectedDate, -1)), [selectedDate, setSelectedDate])
@@ -222,39 +266,58 @@ export function CalendarPage() {
 
           {/* Range controls */}
           {dateMode === 'range' && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex flex-col gap-1 flex-1 min-w-[130px]">
-                <label className="text-xs text-slate-500 font-medium">From</label>
-                <input
-                  type="date"
-                  value={toDateString(rangeStart)}
-                  onChange={(e) => {
-                    const d = parseDateInput(e.target.value)
-                    if (d) {
-                      setRangeStart(d)
-                      if (d > rangeEnd) setRangeEnd(d)
-                    }
-                  }}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-col gap-1 flex-1 min-w-[130px]">
+                  <label className="text-xs text-slate-500 font-medium">From</label>
+                  <input
+                    type="date"
+                    value={toDateString(rangeStart)}
+                    onChange={(e) => {
+                      const d = parseDateInput(e.target.value)
+                      if (d) {
+                        setRangeStart(d)
+                        if (d > rangeEnd) setRangeEnd(d)
+                      }
+                    }}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1 min-w-[130px]">
+                  <label className="text-xs text-slate-500 font-medium">To</label>
+                  <input
+                    type="date"
+                    value={toDateString(rangeEnd)}
+                    min={toDateString(rangeStart)}
+                    onChange={(e) => {
+                      const d = parseDateInput(e.target.value)
+                      if (d) setRangeEnd(d)
+                    }}
+                    className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-1 flex-1 min-w-[130px]">
-                <label className="text-xs text-slate-500 font-medium">To</label>
-                <input
-                  type="date"
-                  value={toDateString(rangeEnd)}
-                  min={toDateString(rangeStart)}
-                  onChange={(e) => {
-                    const d = parseDateInput(e.target.value)
-                    if (d) setRangeEnd(d)
-                  }}
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
+
+              <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                <span className="text-xs text-slate-500 font-medium">
+                  {events.length} event{events.length !== 1 ? 's' : ''} in selected range
+                </span>
+                <Button size="sm" onClick={handleSaveRange} className="gap-1.5">
+                  <Save className="h-3.5 w-3.5" />
+                  <Download className="h-3.5 w-3.5" />
+                  Save Range & Export
+                </Button>
               </div>
             </div>
           )}
         </div>
       )}
+
+      <Toast
+        message={toastMessage || ''}
+        visible={Boolean(toastMessage)}
+        onClose={() => setToastMessage(null)}
+      />
 
       {/* Events list */}
       {isConnected ? (

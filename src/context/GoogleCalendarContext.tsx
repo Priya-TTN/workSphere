@@ -24,6 +24,7 @@ interface GoogleCalendarContextType {
   isLoading: boolean
   events: GoogleCalendarEvent[]
   todayEvents: GoogleCalendarEvent[]
+  upcomingEvents: GoogleCalendarEvent[]
   isFetching: boolean
   connectError: string | null
   dateMode: DateMode
@@ -34,6 +35,7 @@ interface GoogleCalendarContextType {
   setRangeStart: (date: Date) => void
   rangeEnd: Date
   setRangeEnd: (date: Date) => void
+  saveRange: (start: Date, end: Date) => void
   connect: (icalUrl: string) => Promise<boolean>
   disconnect: () => void
   refetch: () => Promise<void>
@@ -47,12 +49,21 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
   const [icsText, setIcsText] = useState<string | null>(null)
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([])
   const [todayEvents, setTodayEvents] = useState<GoogleCalendarEvent[]>([])
+  const [upcomingEvents, setUpcomingEvents] = useState<GoogleCalendarEvent[]>([])
   const [isFetching, setIsFetching] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
-  const [dateMode, setDateMode] = useState<DateMode>('single')
+  const [dateMode, setDateMode] = useState<DateMode>(() => {
+    return (localStorage.getItem('workpilot_gcal_mode') as DateMode) || 'single'
+  })
   const [selectedDate, setSelectedDate] = useState<Date>(today())
-  const [rangeStart, setRangeStart] = useState<Date>(today())
-  const [rangeEnd, setRangeEnd] = useState<Date>(today())
+  const [rangeStart, setRangeStart] = useState<Date>(() => {
+    const s = localStorage.getItem('workpilot_gcal_range_start')
+    return s ? new Date(s) : today()
+  })
+  const [rangeEnd, setRangeEnd] = useState<Date>(() => {
+    const e = localStorage.getItem('workpilot_gcal_range_end')
+    return e ? new Date(e) : today()
+  })
 
   const loadFeed = useCallback(async (icalUrl: string) => {
     setIsFetching(true)
@@ -86,6 +97,7 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
     if (!icsText) {
       setEvents([])
       setTodayEvents([])
+      setUpcomingEvents([])
       return
     }
 
@@ -93,7 +105,20 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
     const end = dateMode === 'single' ? selectedDate : rangeEnd
     setEvents(eventsInRange(icsText, start, end))
     setTodayEvents(eventsInRange(icsText, today(), today()))
+
+    const nextWeek = new Date(today())
+    nextWeek.setDate(nextWeek.getDate() + 7)
+    setUpcomingEvents(eventsInRange(icsText, today(), nextWeek))
   }, [icsText, dateMode, selectedDate, rangeStart, rangeEnd])
+
+  const saveRange = useCallback((start: Date, end: Date) => {
+    setRangeStart(start)
+    setRangeEnd(end)
+    setDateMode('range')
+    localStorage.setItem('workpilot_gcal_mode', 'range')
+    localStorage.setItem('workpilot_gcal_range_start', start.toISOString())
+    localStorage.setItem('workpilot_gcal_range_end', end.toISOString())
+  }, [])
 
   const connect = useCallback(
     async (icalUrl: string) => {
@@ -110,6 +135,7 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
     setIcsText(null)
     setEvents([])
     setTodayEvents([])
+    setUpcomingEvents([])
     setConnectError(null)
   }, [])
 
@@ -126,16 +152,21 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
         isLoading,
         events,
         todayEvents,
+        upcomingEvents,
         isFetching,
         connectError,
         dateMode,
-        setDateMode,
+        setDateMode: (mode) => {
+          setDateMode(mode)
+          localStorage.setItem('workpilot_gcal_mode', mode)
+        },
         selectedDate,
         setSelectedDate,
         rangeStart,
         setRangeStart,
         rangeEnd,
         setRangeEnd,
+        saveRange,
         connect,
         disconnect,
         refetch,

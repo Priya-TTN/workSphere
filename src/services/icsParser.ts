@@ -4,7 +4,7 @@
  */
 
 const WEEKDAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const
-const MAX_OCCURRENCES = 400
+const MAX_OCCURRENCES = 5000
 
 export interface IcsAttendee {
   email: string
@@ -300,6 +300,28 @@ function expandRawEvent(raw: RawEvent, rangeStart: number, rangeEnd: number, exc
   const events: IcsEvent[] = []
 
   let current = freq === 'WEEKLY' ? firstWeeklyOccurrence(new Date(raw.startMs), bydays) : new Date(raw.startMs)
+
+  // Fast-forward current occurrence pointer if rangeStart is far ahead and no COUNT constraint
+  if (!count && current.getTime() < rangeStart - 86400000 * 14) {
+    const diffMs = (rangeStart - 86400000 * 7) - current.getTime()
+    if (freq === 'DAILY') {
+      const daysToJump = Math.floor(diffMs / (86400000 * interval)) * interval
+      if (daysToJump > 0) {
+        current.setDate(current.getDate() + daysToJump)
+      }
+    } else if (freq === 'WEEKLY') {
+      const weeksToJump = Math.floor(diffMs / (86400000 * 7 * interval)) * interval
+      if (weeksToJump > 0) {
+        current.setDate(current.getDate() + weeksToJump * 7)
+      }
+    } else if (freq === 'MONTHLY') {
+      const monthsToJump = Math.floor(diffMs / (86400000 * 30 * interval)) * interval
+      if (monthsToJump > 0) {
+        current = addMonths(current, monthsToJump)
+      }
+    }
+  }
+
   let produced = 0
 
   while (produced < MAX_OCCURRENCES) {
