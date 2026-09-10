@@ -47,7 +47,9 @@ const GoogleCalendarContext = createContext<GoogleCalendarContextType | null>(nu
 export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(isGoogleCalendarConnected)
   const [isLoading, setIsLoading] = useState(true)
-  const [icsText, setIcsText] = useState<string | null>(null)
+  const [icsText, setIcsText] = useState<string | null>(() => {
+    return localStorage.getItem('workpilot_cached_ics')
+  })
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([])
   const [todayEvents, setTodayEvents] = useState<GoogleCalendarEvent[]>([])
   const [upcomingEvents, setUpcomingEvents] = useState<GoogleCalendarEvent[]>([])
@@ -73,12 +75,12 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
     try {
       const text = await fetchIcsFeed(icalUrl)
       setIcsText(text)
+      localStorage.setItem('workpilot_cached_ics', text)
       setIsConnected(true)
       return true
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not load Google Calendar.'
       setConnectError(message)
-      setIcsText(null)
       return false
     } finally {
       setIsFetching(false)
@@ -91,6 +93,9 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
     if (!stored) {
       setIsLoading(false)
       return
+    }
+    if (localStorage.getItem('workpilot_cached_ics')) {
+      setIsLoading(false)
     }
     void loadFeed(stored)
   }, [loadFeed])

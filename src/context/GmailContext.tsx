@@ -46,8 +46,18 @@ export function GmailProvider({ children }: { children: ReactNode }) {
   const [isFetching, setIsFetching] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
   const [emailAddress, setEmailAddress] = useState<string | null>(getStoredGmailEmail)
-  const [messages, setMessages] = useState<EmailRecord[]>([])
-  const [unseenCount, setUnseenCount] = useState(0)
+  const [messages, setMessages] = useState<EmailRecord[]>(() => {
+    try {
+      const cached = localStorage.getItem('workpilot_cached_inbox')
+      return cached ? (JSON.parse(cached) as EmailRecord[]) : []
+    } catch {
+      return []
+    }
+  })
+  const [unseenCount, setUnseenCount] = useState(() => {
+    const cached = localStorage.getItem('workpilot_cached_unseen')
+    return cached ? Number(cached) : 0
+  })
   const [mailboxTotal, setMailboxTotal] = useState(0)
 
   const loadInbox = useCallback(async (email: string, appPassword: string) => {
@@ -58,13 +68,13 @@ export function GmailProvider({ children }: { children: ReactNode }) {
       setMessages(result.messages)
       setUnseenCount(result.unseenCount)
       setMailboxTotal(result.mailboxTotal)
+      localStorage.setItem('workpilot_cached_inbox', JSON.stringify(result.messages))
+      localStorage.setItem('workpilot_cached_unseen', String(result.unseenCount))
       setEmailAddress(email.trim())
       setIsConnected(true)
       return true
     } catch (err) {
       setConnectError(err instanceof Error ? err.message : 'Could not load Gmail.')
-      setMessages([])
-      setIsConnected(false)
       return false
     } finally {
       setIsFetching(false)
@@ -77,6 +87,9 @@ export function GmailProvider({ children }: { children: ReactNode }) {
     if (!stored) {
       setIsLoading(false)
       return
+    }
+    if (localStorage.getItem('workpilot_cached_inbox')) {
+      setIsLoading(false)
     }
     void loadInbox(stored.email, stored.appPassword)
   }, [loadInbox])
