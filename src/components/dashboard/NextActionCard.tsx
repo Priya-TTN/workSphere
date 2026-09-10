@@ -22,6 +22,9 @@ import type { Source, Task } from '@/types'
 import teamsData from '@/data/teams.json'
 import calendarData from '@/data/calendar.json'
 import type { TeamsMessage, CalendarEvent } from '@/types'
+import { useGmail } from '@/context/GmailContext'
+import { useGoogleCalendar } from '@/context/GoogleCalendarContext'
+import { extractAllMailInsights } from '@/services/email/emailExtractor'
 import { dashboardCardPadding, dashboardCardTitle } from './styles'
 
 const sourceIcons: Record<Source, typeof Mail> = {
@@ -38,6 +41,8 @@ export function NextActionCard() {
   const recommendation = useTaskRecommendation()
   const { tasks, updateTaskStatus, addActivity, setStartWorkingTaskId, startWorkingTaskId } =
     useApp()
+  const { isConnected: gmailConnected, messages } = useGmail()
+  const { isConnected: calendarConnected, todayEvents } = useGoogleCalendar()
   const [loading, setLoading] = useState(false)
   const [toastVisible, setToastVisible] = useState(false)
 
@@ -50,15 +55,58 @@ export function NextActionCard() {
       : undefined
 
     const task: Task | undefined = startedTask ?? recommendation?.task
-    if (!task) return null
-
-    const reasons =
-      startedTask
+    if (task) {
+      const reasons = startedTask
         ? buildRecommendationReasons(task, teamsMessages, calendarEvents)
         : recommendation?.reasons ?? []
+      return { task, reasons }
+    }
 
-    return { task, reasons }
-  }, [startWorkingTaskId, tasks, recommendation, teamsMessages, calendarEvents])
+    // Dynamic fallback 1: Gmail Action Items
+    if (gmailConnected && messages.length > 0) {
+      const insights = extractAllMailInsights(messages)
+      const mailAction = insights.find((i) => i.actionItems.length > 0)
+      if (mailAction) {
+        const synthesizedTask: Task = {
+          id: 'MAIL-101',
+          sourceId: 'MAIL-101',
+          title: mailAction.actionItems[0],
+          description: `Extracted from email subject: "${mailAction.subject}" sent by ${mailAction.from}`,
+          priority: mailAction.priority,
+          priorityScore: 80,
+          deadline: '2025-06-10',
+          status: 'TODO',
+          source: 'Email',
+          estimatedMinutes: 30,
+          reasons: ['Extracted from connected Gmail inbox', 'Requires immediate action'],
+          linkedItems: [`Email from ${mailAction.from}`],
+        }
+        return { task: synthesizedTask, reasons: synthesizedTask.reasons }
+      }
+    }
+
+    // Dynamic fallback 2: Google Calendar Next Meeting
+    if (calendarConnected && todayEvents.length > 0) {
+      const meet = todayEvents[0]
+      const synthesizedTask: Task = {
+        id: 'CAL-101',
+        sourceId: 'CAL-101',
+        title: `Prepare for meeting: ${meet.summary}`,
+        description: `Scheduled meeting on Google Calendar ${meet.location ? `@ ${meet.location}` : ''}`,
+        priority: 'HIGH',
+        priorityScore: 85,
+        deadline: '2025-06-10',
+        status: 'TODO',
+        source: 'Calendar',
+        estimatedMinutes: 45,
+        reasons: ["Connected to today's Google Calendar schedule"],
+        linkedItems: [`Calendar Event`],
+      }
+      return { task: synthesizedTask, reasons: synthesizedTask.reasons }
+    }
+
+    return null
+  }, [startWorkingTaskId, tasks, recommendation, teamsMessages, calendarEvents, gmailConnected, messages, calendarConnected, todayEvents])
 
   const task = display?.task
   const reasons = display?.reasons ?? []

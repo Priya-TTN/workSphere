@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react'
 import type { Task, Activity } from '@/types'
 import { getTomorrowDate } from '@/services/workloadCalculator'
+import initialTasksData from '@/data/tasks.json'
 
 interface AppContextType {
   tasks: Task[]
@@ -24,9 +25,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>(() => {
     try {
       const stored = localStorage.getItem(TASKS_KEY)
-      return stored ? (JSON.parse(stored) as Task[]) : []
+      if (stored) {
+        const parsed = JSON.parse(stored) as Task[]
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
+      }
+      return initialTasksData as Task[]
     } catch {
-      return []
+      return initialTasksData as Task[]
     }
   })
 

@@ -151,7 +151,7 @@ export function getRecommendedTask(
   teamsMessages: TeamsMessage[],
   calendarEvents: CalendarEvent[]
 ): TaskRecommendation | null {
-  const candidates = tasks.filter((t) => t.status === 'TODO')
+  const candidates = tasks.filter((t) => t.status !== 'DONE')
 
   if (candidates.length === 0) return null
 
