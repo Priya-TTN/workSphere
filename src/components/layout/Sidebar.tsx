@@ -10,6 +10,7 @@ import {
   FileText,
   Table2,
   Sparkles,
+  Brain,
   BarChart3,
   Settings,
   X,
@@ -33,6 +34,7 @@ const navItems = [
   { to: '/documents', label: 'Files & Documents', icon: FileText },
   { to: '/excel', label: 'Excel Insights', icon: Table2 },
   { to: '/ask-workpilot', label: 'Ask WorkPilot', icon: Sparkles },
+  { to: '/ai-settings', label: 'AI Model', icon: Brain },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
   { to: '/settings', label: 'Settings', icon: Settings },
 ]

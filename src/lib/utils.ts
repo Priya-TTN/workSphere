@@ -5,9 +5,8 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatRelativeTime(dateStr: string): string {
+export function formatRelativeTime(dateStr: string, now = new Date('2025-06-10T12:00:00')): string {
   const date = new Date(dateStr)
-  const now = new Date('2025-06-10T12:00:00')
   const diffMs = now.getTime() - date.getTime()
   const diffMins = Math.floor(diffMs / 60000)
   if (diffMins < 1) return 'Just now'
@@ -16,6 +15,10 @@ export function formatRelativeTime(dateStr: string): string {
   if (diffHours < 24) return `${diffHours}h ago`
   const diffDays = Math.floor(diffHours / 24)
   return `${diffDays}d ago`
+}
+
+export function formatRelativeTimeLive(dateStr: string): string {
+  return formatRelativeTime(dateStr, new Date())
 }
 
 export function formatDate(dateStr: string): string {

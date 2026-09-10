@@ -1,6 +1,10 @@
 import type { Activity, Deadline, Task, CalendarEvent, TeamsMessage } from '@/types'
+import type { EmailRecord } from '@/services/email/types'
+import type { GoogleCalendarEvent } from '@/services/googleCalendar'
 import { calculateWorkload, getDeferRecommendations } from './workloadCalculator'
 import { getRecommendedTask, WORKDAY_DATE } from './taskRecommendation'
+import { buildInboxBrief } from '@/services/ai/emailContext'
+import { formatEventTime } from '@/services/googleCalendar'
 import tasksData from '@/data/tasks.json'
 import teamsData from '@/data/teams.json'
 import calendarData from '@/data/calendar.json'
@@ -22,7 +26,9 @@ export function getAIResponse(
   query: string,
   deadlines: Deadline[],
   activities: Activity[],
-  tasks: Task[] = tasksData as Task[]
+  tasks: Task[] = tasksData as Task[],
+  inbox?: EmailRecord[],
+  liveEvents?: GoogleCalendarEvent[]
 ): AIResponse {
   const q = query.toLowerCase().trim()
   const teams = teamsData as TeamsMessage[]
@@ -68,6 +74,24 @@ export function getAIResponse(
   }
 
   if (q.includes('meeting') || q.includes('calendar')) {
+    if (liveEvents && liveEvents.length > 0) {
+      return {
+        answer: `You have ${liveEvents.length} calendar event${liveEvents.length === 1 ? '' : 's'} in the current view:`,
+        type: 'list',
+        items: liveEvents.map((event) => {
+          const time = formatEventTime(event.start.dateTime ?? event.start.date) || 'All day'
+          return `${time}: ${event.summary}${event.location ? ` (${event.location})` : ''}`
+        }),
+      }
+    }
+    const fromMail = inbox?.filter((email) => email.meetingHints.length > 0) ?? []
+    if (fromMail.length > 0) {
+      return {
+        answer: 'These emails look related to upcoming meetings:',
+        type: 'list',
+        items: fromMail.slice(0, 8).map((email) => `${email.subject} — ${email.meetingHints[0].value}`),
+      }
+    }
     return {
       answer:
         'You have 3 meetings today: Client Sync at 10:30 AM (Teams), Tech Discussion at 1:00 PM (Room 3), and 1:1 with Manager at 3:00 PM (Teams).',
@@ -75,7 +99,15 @@ export function getAIResponse(
     }
   }
 
-  if (q.includes('email')) {
+  if (q.includes('email') || q.includes('inbox') || q.includes('summar')) {
+    if (inbox && inbox.length > 0) {
+      const brief = buildInboxBrief(inbox)
+      return {
+        answer: `I can read ${inbox.length} Gmail messages (${brief.unread} unread, ${brief.meetingCount} with meeting signals). Top items:`,
+        type: 'list',
+        items: brief.bullets,
+      }
+    }
     return {
       answer: 'You have 7 emails, 3 need action. The most urgent is from the client about a payment failure.',
       type: 'text',

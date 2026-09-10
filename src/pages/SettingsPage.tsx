@@ -4,7 +4,10 @@ import userData from '@/data/user.json'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Toast } from '@/components/ui/Toast'
-import { Settings } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { GoogleCalendarConnector } from '@/components/calendar/GoogleCalendarConnector'
+import { GmailConnector } from '@/components/email/GmailConnector'
+import { Settings, Brain } from 'lucide-react'
 
 const DISPLAY_NAME_KEY = 'workpilot_display_name'
 
@@ -74,6 +77,19 @@ export function SettingsPage() {
         />
 
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h3 className="text-base font-semibold text-slate-900 mb-2">AI assistant</h3>
+          <p className="text-sm text-slate-500 mb-4">
+            Add your LLM API URL so Ask WorkPilot can summarize mail, read the calendar, and plan the day.
+          </p>
+          <Link to="/ai-settings">
+            <Button variant="outline">
+              <Brain className="h-4 w-4" />
+              Open AI Model settings
+            </Button>
+          </Link>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-base font-semibold text-slate-900 mb-4">Notifications</h3>
           <div className="space-y-3">
             {['Email notifications', 'Teams mentions', 'Jira updates', 'Calendar reminders'].map(
@@ -90,9 +106,9 @@ export function SettingsPage() {
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-base font-semibold text-slate-900 mb-4">Integrations</h3>
           <p className="text-sm text-slate-500 mb-4">
-            Connect your work tools. Integrations are configured for the MVP with mock data.
+            Connect Google Calendar and Gmail with a secret iCal URL. Other tools still use demo data.
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-4">
             {['Microsoft 365', 'Jira', 'Teams', 'Outlook'].map((integration) => (
               <div
                 key={integration}
@@ -104,6 +120,14 @@ export function SettingsPage() {
                 </span>
               </div>
             ))}
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-sm font-medium text-slate-700 mb-3">Google Calendar</p>
+            <GoogleCalendarConnector />
+          </div>
+          <div className="border-t border-slate-100 pt-4 mt-4">
+            <p className="text-sm font-medium text-slate-700 mb-3">Gmail</p>
+            <GmailConnector />
           </div>
         </div>
       </div>

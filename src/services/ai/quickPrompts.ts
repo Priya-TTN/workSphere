@@ -1,0 +1,28 @@
+export const QUICK_PROMPTS = [
+  'What should I do today?',
+  'What should I work on first?',
+  'What should I work on right now?',
+  'What is most urgent?',
+  'What is overdue?',
+  'What am I waiting for?',
+  'What is blocking me?',
+  'What changed since yesterday?',
+  'What happened while I was away?',
+  'What deadlines are coming?',
+  'What meetings do I have?',
+  'How busy am I?',
+  'Which tasks can I postpone?',
+  'Which tasks are related?',
+  'Which tasks are duplicates?',
+  'Which tasks are blocked?',
+  'What did we discuss yesterday?',
+  'What did we decide in the meeting?',
+  'What did the client ask for?',
+  'What did my manager ask me to do?',
+  'Show everything related to Project X.',
+  'Show all communication about Ticket ANZ-342.',
+  'Summarize my workday.',
+  'Prepare my daily briefing.',
+]
+
+export const COMPACT_QUICK_PROMPTS = QUICK_PROMPTS.slice(0, 4)
