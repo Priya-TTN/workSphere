@@ -22,11 +22,35 @@ function TimelineDot() {
 
 export function CalendarCard() {
   const navigate = useNavigate()
-  const { isConnected, todayEvents, upcomingEvents, isFetching } = useGoogleCalendar()
+  const { isConnected, todayEvents, upcomingEvents, events, allFeedEvents, isFetching } = useGoogleCalendar()
 
   // ── Google Calendar events ────────────────────────────────────────────────
-  const displayEvents = todayEvents.length > 0 ? todayEvents : upcomingEvents
-  const cardTitle = todayEvents.length > 0 ? "Today's Calendar" : upcomingEvents.length > 0 ? "Upcoming Schedule" : "Today's Calendar"
+  const displayEvents =
+    todayEvents.length > 0
+      ? todayEvents
+      : upcomingEvents.length > 0
+      ? upcomingEvents
+      : events.length > 0
+      ? events
+      : allFeedEvents
+
+  const cardTitle =
+    todayEvents.length > 0
+      ? "Today's Calendar"
+      : upcomingEvents.length > 0
+      ? "Upcoming Schedule"
+      : displayEvents.length > 0
+      ? "Calendar Events"
+      : "Today's Calendar"
+
+  const badgeText =
+    todayEvents.length > 0
+      ? null
+      : upcomingEvents.length > 0
+      ? "Next 60 Days"
+      : displayEvents.length > 0
+      ? "All Feed Events"
+      : null
 
   if (isConnected) {
     return (
@@ -34,9 +58,9 @@ export function CalendarCard() {
         <div className={dashboardCardHeader}>
           <div className="flex items-center gap-2">
             <h3 className={dashboardCardTitle}>{cardTitle}</h3>
-            {todayEvents.length === 0 && upcomingEvents.length > 0 && (
+            {badgeText && (
               <span className="text-[10px] font-semibold bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-300 px-2 py-0.5 rounded-full border border-purple-200/60">
-                Next 7 Days
+                {badgeText}
               </span>
             )}
           </div>

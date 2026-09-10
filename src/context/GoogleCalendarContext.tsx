@@ -25,6 +25,7 @@ interface GoogleCalendarContextType {
   events: GoogleCalendarEvent[]
   todayEvents: GoogleCalendarEvent[]
   upcomingEvents: GoogleCalendarEvent[]
+  allFeedEvents: GoogleCalendarEvent[]
   isFetching: boolean
   connectError: string | null
   dateMode: DateMode
@@ -50,6 +51,7 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([])
   const [todayEvents, setTodayEvents] = useState<GoogleCalendarEvent[]>([])
   const [upcomingEvents, setUpcomingEvents] = useState<GoogleCalendarEvent[]>([])
+  const [allFeedEvents, setAllFeedEvents] = useState<GoogleCalendarEvent[]>([])
   const [isFetching, setIsFetching] = useState(false)
   const [connectError, setConnectError] = useState<string | null>(null)
   const [dateMode, setDateMode] = useState<DateMode>(() => {
@@ -98,6 +100,7 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
       setEvents([])
       setTodayEvents([])
       setUpcomingEvents([])
+      setAllFeedEvents([])
       return
     }
 
@@ -106,9 +109,15 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
     setEvents(eventsInRange(icsText, start, end))
     setTodayEvents(eventsInRange(icsText, today(), today()))
 
-    const nextWeek = new Date(today())
-    nextWeek.setDate(nextWeek.getDate() + 7)
-    setUpcomingEvents(eventsInRange(icsText, today(), nextWeek))
+    const nextMonth = new Date(today())
+    nextMonth.setDate(nextMonth.getDate() + 60)
+    setUpcomingEvents(eventsInRange(icsText, today(), nextMonth))
+
+    const pastWindow = new Date(today())
+    pastWindow.setDate(pastWindow.getDate() - 30)
+    const futureWindow = new Date(today())
+    futureWindow.setDate(futureWindow.getDate() + 365)
+    setAllFeedEvents(eventsInRange(icsText, pastWindow, futureWindow))
   }, [icsText, dateMode, selectedDate, rangeStart, rangeEnd])
 
   const saveRange = useCallback((start: Date, end: Date) => {
@@ -136,6 +145,7 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
     setEvents([])
     setTodayEvents([])
     setUpcomingEvents([])
+    setAllFeedEvents([])
     setConnectError(null)
   }, [])
 
@@ -153,6 +163,7 @@ export function GoogleCalendarProvider({ children }: { children: ReactNode }) {
         events,
         todayEvents,
         upcomingEvents,
+        allFeedEvents,
         isFetching,
         connectError,
         dateMode,
