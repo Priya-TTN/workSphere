@@ -49,58 +49,74 @@ export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps)
                   <AIBadge label={isConfigured ? 'External LLM' : 'Built-in AI'} />
                 </div>
               )}
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-              {msg.items && (
-                <ul className="mt-2 space-y-1">
+              <div className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+              {msg.items && msg.items.length > 0 && (
+                <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-2.5">
                   {msg.items.map((item, index) => (
-                    <li key={`${item}-${index}`} className="text-sm">
-                      • {item}
-                    </li>
+                    <div
+                      key={`${item}-${index}`}
+                      className="flex items-start gap-2 rounded-lg bg-slate-50/80 border border-slate-100 px-3 py-2 text-xs sm:text-sm text-slate-700 font-normal leading-snug"
+                    >
+                      <span className="shrink-0 text-slate-400 font-mono text-xs select-none">
+                        {index + 1}.
+                      </span>
+                      <span className="flex-1 min-w-0">{item}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
               {msg.actionType === 'pdf' && (
-                <button
-                  type="button"
-                  onClick={generatePdfReport}
-                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-purple-700 transition-colors"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  Print / Download Workday PDF Report
-                </button>
+                <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
+                  <span className="text-xs font-medium text-slate-500">
+                    Ready to export workday report
+                  </span>
+                  <button
+                    type="button"
+                    onClick={generatePdfReport}
+                    className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-purple-600/20 hover:bg-purple-700 hover:shadow-lg transition-all"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Download / Print PDF Report
+                  </button>
+                </div>
               )}
             </div>
           </div>
         ))}
         {loading && (
           <div className="flex items-center gap-2 text-slate-400 text-sm">
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
             WorkPilot is thinking...
           </div>
         )}
       </div>
 
       <div className={cn('shrink-0', compact ? 'border-t border-slate-100 px-3 pb-3 pt-2' : '')}>
-        <div className={cn('flex flex-wrap gap-2', compact ? 'mb-2' : 'mb-3')}>
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+            Suggested Prompts
+          </span>
+          {!compact && (
+            <button
+              type="button"
+              onClick={() => setShowAllPrompts((value) => !value)}
+              className="text-[11px] font-medium text-purple-600 hover:text-purple-700"
+            >
+              {showAllPrompts ? 'Show less' : 'View all prompts'}
+            </button>
+          )}
+        </div>
+        <div className={cn('flex flex-wrap gap-1.5', compact ? 'mb-2' : 'mb-3')}>
           {prompts.map((prompt) => (
             <button
               key={prompt}
               type="button"
               onClick={() => void sendMessage(prompt)}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-600 hover:border-purple-200 hover:bg-purple-50"
+              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-2xs hover:border-purple-300 hover:bg-purple-50 hover:text-purple-700 active:scale-95 transition-all"
             >
               {prompt}
             </button>
           ))}
-          {!compact && (
-            <button
-              type="button"
-              onClick={() => setShowAllPrompts((value) => !value)}
-              className="rounded-full border border-dashed border-slate-200 px-3 py-1 text-xs text-slate-500 hover:border-purple-200"
-            >
-              {showAllPrompts ? 'Show less' : 'More questions'}
-            </button>
-          )}
         </div>
 
         <div className="flex gap-2">
@@ -109,9 +125,9 @@ export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps)
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={compact ? 'Ask about your workday...' : 'Ask anything about your workday...'}
+            placeholder={compact ? 'Ask about tasks, meetings, mails...' : 'Ask about your tasks, meetings, mails, Jira...'}
             className={cn(
-              'flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-100',
+              'flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-800 focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-100 placeholder:text-slate-400',
               compact ? 'py-2.5' : 'py-3'
             )}
           />
@@ -119,7 +135,7 @@ export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps)
             onClick={handleSend}
             disabled={loading || !input.trim()}
             size="icon"
-            className={cn('rounded-xl', compact ? 'h-10 w-10' : 'h-12 w-12')}
+            className={cn('rounded-xl shrink-0', compact ? 'h-10 w-10' : 'h-12 w-12')}
           >
             <Send className="h-4 w-4" />
           </Button>

@@ -22,9 +22,26 @@ export function AskWorkPilotPage() {
             {isConfigured ? 'LLM connected' : 'Connect LLM'}
           </Link>
         </div>
-        <p className="text-slate-500 mt-1">
-          Central AI assistant over your mail, calendar, tasks, and tickets.
+        <p className="text-slate-500 mt-1 text-sm">
+          Central AI assistant over your Gmail, Google Calendar, Tasks, Jira tickets, and Teams messages.
         </p>
+
+        {/* Feature showcase pills */}
+        <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+          <span className="font-semibold text-slate-400 shrink-0 uppercase tracking-wider text-[10px]">Featured AI Actions:</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2.5 py-1 font-medium text-purple-700 border border-purple-100 shrink-0">
+            📄 Workday PDF Export
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 font-medium text-blue-700 border border-blue-100 shrink-0">
+            📅 Tasks, Meetings & Mails Digest
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 font-medium text-amber-700 border border-amber-100 shrink-0">
+            📩 Mail Action Extraction
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 font-medium text-emerald-700 border border-emerald-100 shrink-0">
+            🚀 Team Standup Generator
+          </span>
+        </div>
       </div>
 
       <WorkPilotChatPanel />

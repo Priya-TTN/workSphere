@@ -47,19 +47,113 @@ export function generateBuiltInAiResponse(
     q.includes('generate pdf') ||
     q.includes('print report') ||
     q.includes('download report') ||
-    q.includes('todays work pdf')
+    q.includes('todays work pdf') ||
+    q.includes('download workday pdf')
   ) {
+    const pendingTasks = tasks.filter((t) => t.status !== 'DONE')
+    const unreadEmails = emails.filter((e) => e.isUnread)
     return {
-      answer: `📄 **Generating Today's Workday PDF Report...**
+      answer: `📄 **Generating Today's Executive Workday PDF Report...**
 
-I have formatted your executive workday report containing:
-- 🎯 **${tasks.length} recorded tasks**
-- 📅 **${events.length} calendar meetings**
-- 📩 **${emails.length} connected emails & action items**
-
-Your browser print dialog will open automatically to save or print your formatted PDF report!`,
-      type: 'text',
+Below is your workday summary compiled for export:`,
+      type: 'list',
+      items: [
+        `🎯 **${tasks.length} Total Tasks** (${pendingTasks.length} pending focus items)`,
+        `📅 **${events.length} Calendar Meetings** scheduled today`,
+        `📩 **${emails.length} Connected Emails** (${unreadEmails.length} unread action items)`,
+        `📊 **${jira.length} Active Jira Sprint Tickets** tracked`,
+      ],
       actionType: 'pdf',
+    }
+  }
+
+  // A2. Complete Tasks, Meetings & Emails List Digest
+  if (
+    q.includes('list today') ||
+    q.includes('list tasks') ||
+    q.includes('tasks, meetings') ||
+    q.includes('tasks meeting mails') ||
+    q.includes('task meeting mails') ||
+    q.includes('list digest')
+  ) {
+    const listItems: string[] = []
+
+    // 1. Meetings
+    events.forEach((ev) => {
+      const time = formatEventTime(ev.start.dateTime ?? ev.start.date) || 'Today'
+      listItems.push(`📅 **[Meeting ${time}]** ${ev.summary}${ev.location ? ` (@ ${ev.location})` : ''}`)
+    })
+
+    // 2. High Priority Tasks
+    tasks.slice(0, 5).forEach((t) => {
+      listItems.push(`🎯 **[Task ${t.priority.toUpperCase()}]** ${t.title} (${t.status.replace('_', ' ')})`)
+    })
+
+    // 3. Unread & Connected Mails
+    emails.slice(0, 4).forEach((m) => {
+      listItems.push(`📩 **[Email]** From ${m.from}: "${m.subject}"${m.isUnread ? ' *(Unread)*' : ''}`)
+    })
+
+    // 4. Jira Tickets
+    jira.slice(0, 3).forEach((j) => {
+      listItems.push(`📊 **[Jira ${j.key}]** ${j.title} (\`${j.status}\`)`)
+    })
+
+    return {
+      answer: `📋 **Today's Complete Workday List Digest (${listItems.length} items):**`,
+      type: 'list',
+      items: listItems,
+    }
+  }
+
+  // A3. High Priority Email Action Items List
+  if (
+    q.includes('high priority email') ||
+    q.includes('email action items list') ||
+    q.includes('action items list')
+  ) {
+    const insights = extractAllMailInsights(emails)
+    const actionItems = insights.flatMap((i) =>
+      i.actionItems.map((act) => `📌 **From ${i.from}**: ${act} (*${i.subject}*)`)
+    )
+
+    if (actionItems.length > 0) {
+      return {
+        answer: `📩 **High-Priority Email Action Items List (${actionItems.length} items extracted):**`,
+        type: 'list',
+        items: actionItems,
+      }
+    }
+    return {
+      answer: `📩 **No pending high-priority email action items found in connected inbox.**`,
+      type: 'text',
+    }
+  }
+
+  // A4. Daily Team Standup Report
+  if (
+    q.includes('standup') ||
+    q.includes('daily standup') ||
+    q.includes('team standup report') ||
+    q.includes('generate standup')
+  ) {
+    const doneTasks = tasks.filter((t) => t.status === 'DONE')
+    const inProgressTasks = tasks.filter((t) => t.status === 'IN_PROGRESS' || t.status === 'TODO')
+    const blockerJira = jira.filter((j) => j.priority === 'HIGH')
+
+    return {
+      answer: `🚀 **Daily Team Standup Report**
+
+**1. Accomplished Yesterday:**
+${doneTasks.length > 0 ? doneTasks.map((t) => `• ✅ Completed task: ${t.title}`).join('\n') : '• Delivered ongoing sprint code reviews and task planning'}
+
+**2. Planned Today:**
+${inProgressTasks.slice(0, 3).map((t) => `• ⚡ Focus on ${t.id}: ${t.title}`).join('\n')}
+• 📅 Attend scheduled team syncs (${events.length} meeting${events.length === 1 ? '' : 's'})
+
+**3. Blockers / Dependencies:**
+${blockerJira.length > 0 ? blockerJira.map((j) => `• ⚠️ Jira ${j.key}: ${j.title} (${j.priority} priority)`).join('\n') : '• No active blockers standard delivery on track.'}`,
+      type: 'text',
     }
   }
 
@@ -133,7 +227,9 @@ Here are the extracted deliverables added to your task pipeline:`,
     q.includes('prioritize') ||
     q.includes('time block') ||
     q.includes('schedule priority') ||
-    q.includes('prioritize my workday')
+    q.includes('prioritize my workday') ||
+    q.includes('focus blocks') ||
+    q.includes('workload balance')
   ) {
     return {
       answer: `🎯 **AI Optimized Workday Schedule & Focus Blocks**
