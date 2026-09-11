@@ -65,6 +65,41 @@ export function generateBuiltInAiResponse(
     }
   }
 
+  // Tech Stack & Architecture Query Handler
+  if (
+    q.includes('tech used') ||
+    q.includes('tech stack') ||
+    q.includes('what tech') ||
+    q.includes('technology stack') ||
+    q.includes('what will be used')
+  ) {
+    return {
+      answer: `🛠️ **WorkPilot AI — Project Technology Stack & Architecture Report**
+
+**1. Technologies Currently Used (In Use):**
+• **Frontend:** React 18, TypeScript 5, Vite 6, Tailwind CSS 4, Framer Motion, Lucide Icons
+• **State Architecture:** Context API (\`AuthContext\`, \`AppContext\`, \`WorkPilotChatContext\`, \`GmailContext\`, \`GoogleCalendarContext\`, \`LlmContext\`, \`ThemeContext\`)
+• **AI Engine:** \`builtInChatbot.ts\` with 50 Context-Aware Work Capabilities, Priority Evidence Calculator, Confidence Scoring, and Agentic Task Execution
+• **Backend & Proxies:** Vite Node IMAP Dev Server Proxy (\`vite/gmailImapPlugin.ts\`), Google iCal Racing & REST Engine
+• **PDF & Reporting:** Executive Workday PDF Print Engine (\`workdayPdf.ts\`)
+
+**2. Future Technologies Planned (Roadmap):**
+• **Production Backend & Database:** Python FastAPI / Node.js NestJS + PostgreSQL (Prisma ORM) + Redis Cache
+• **Vector DB & Enterprise RAG:** Qdrant / Pgvector / Pinecone for Document & Policy Embeddings
+• **Production LLM Models:** OpenAI GPT-4o, Google Gemini 1.5 Pro, Anthropic Claude 3.5 Sonnet, DeepSeek-R1 (Ollama)
+• **Voice AI & Real-Time Sync:** WebSockets / Socket.io + OpenAI Whisper / Web Speech API
+• **Cloud Infrastructure:** Netlify / Vercel Edge CDN, Docker Containers, GitHub Actions CI/CD`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['WorkPilot Architecture Blueprint', 'README.md'],
+      suggestedActions: [
+        { label: '📄 Generate Tech Stack PDF', action: 'tech_stack_pdf' },
+        { label: '📄 Export Workday PDF', action: 'pdf' },
+      ],
+      actionType: 'pdf',
+    }
+  }
+
   // 43. Multilingual Support (Hindi / Spanish detection)
   if (q.includes('mujhe aaj') || q.includes('kya kaam') || q.includes('aaj kya')) {
     const rec = getRecommendedTask(tasks, teams, mappedEvents)

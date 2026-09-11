@@ -24,6 +24,7 @@ import calendarData from '@/data/calendar.json'
 import type { CalendarEvent, Deadline, Email, JiraTicket, TeamsMessage } from '@/types'
 import { extractAllMailInsights } from '@/services/email/emailExtractor'
 import { generateWorkdayPdf } from '@/services/reports/workdayPdf'
+import { generateTechStackPdf } from '@/services/reports/techStackPdf'
 
 export interface ChatMessage {
   role: 'user' | 'assistant'
@@ -117,6 +118,8 @@ export function WorkPilotChatProvider({ children }: { children: ReactNode }) {
       const act = action.action
       if (act === 'pdf') {
         generatePdfReport()
+      } else if (act === 'tech_stack_pdf') {
+        generateTechStackPdf()
       } else if (act === 'start_task') {
         const t = tasks[0]
         if (t) setStartWorkingTaskId(t.id)
