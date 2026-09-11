@@ -2,6 +2,10 @@
 
 > **Turn fragmented work into your smartest next action.**
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Netlify-00C7B7?style=for-the-badge&logo=netlify&logoColor=white)](https://magnificent-salmiakki-4549f5.netlify.app/login)
+
+🌐 **Live Application Demo:** [https://magnificent-salmiakki-4549f5.netlify.app/login](https://magnificent-salmiakki-4549f5.netlify.app/login)
+
 WorkPilot AI brings your tasks, emails, calendar meetings, Teams messages, Jira work, documents, and Excel spreadsheets into one unified, intelligent productivity workspace.
 
 ---
