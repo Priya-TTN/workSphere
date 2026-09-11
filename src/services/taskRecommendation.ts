@@ -1,7 +1,7 @@
 import type { Task, TeamsMessage, CalendarEvent, Priority } from '@/types'
 
-/** Fixed reference date for deterministic MVP scoring */
-export const WORKDAY_DATE = '2025-06-10'
+/** Current reference date for dynamic real-time scoring */
+export const WORKDAY_DATE = new Date().toISOString().split('T')[0]
 
 export interface TaskRecommendation {
   task: Task
