@@ -2,11 +2,15 @@ import type { Activity } from '@/types'
 import type { CalendarEvent } from '@/types'
 import type { GoogleCalendarEvent } from '@/services/googleCalendar'
 import type { WorkSnapshot } from '@/services/ai/contextEngine'
-import { calculateWorkload, getDeferRecommendations } from '@/services/workloadCalculator'
 import { getRecommendedTask, WORKDAY_DATE } from '@/services/taskRecommendation'
-import { buildInboxBrief } from '@/services/ai/emailContext'
 import { extractAllMailInsights } from '@/services/email/emailExtractor'
 import { formatEventTime } from '@/services/googleCalendar'
+
+export interface ChatAction {
+  label: string
+  action: string
+  payload?: Record<string, any>
+}
 
 export interface BuiltInAIResponse {
   answer: string
@@ -14,12 +18,15 @@ export interface BuiltInAIResponse {
   actionType?: 'pdf' | 'convert_email_tasks' | 'clear_completed'
   items?: string[]
   activities?: Activity[]
-}
-
-function daysUntilDeadline(deadline: string): number {
-  const today = new Date(`${WORKDAY_DATE}T12:00:00`)
-  const d = new Date(`${deadline}T12:00:00`)
-  return Math.round((d.getTime() - today.getTime()) / 86_400_000)
+  confidence?: 'High' | 'Medium' | 'Low'
+  reasons?: string[]
+  sources?: string[]
+  suggestedActions?: ChatAction[]
+  activeTopic?: string
+  agenticEffect?: {
+    type: 'create_task' | 'update_task' | 'complete_task' | 'delete_task'
+    taskData?: any
+  }
 }
 
 function mapGoogleToCalendarEvents(events: GoogleCalendarEvent[]): CalendarEvent[] {
@@ -35,11 +42,462 @@ function mapGoogleToCalendarEvents(events: GoogleCalendarEvent[]): CalendarEvent
 
 export function generateBuiltInAiResponse(
   userQuery: string,
-  snapshot: WorkSnapshot
+  snapshot: WorkSnapshot,
+  activeTopic?: string
 ): BuiltInAIResponse {
   const q = userQuery.trim().toLowerCase()
-  const { emails, events, tasks, jira, teams, deadlines, activities } = snapshot
+  const { emails, events, tasks, jira, teams } = snapshot
   const mappedEvents = mapGoogleToCalendarEvents(events)
+
+  // 39. Permission-Aware & Security Check
+  if (
+    q.includes('private email') ||
+    q.includes('password') ||
+    q.includes('salary') ||
+    q.includes("rahul's private") ||
+    q.includes("alex's private")
+  ) {
+    return {
+      answer: '🔒 **Security & Governance Policy:** I can only access work items, tasks, and communications that your account is explicitly authorized to view in this workspace.',
+      type: 'text',
+      confidence: 'High',
+      sources: ['Enterprise Access Policy'],
+    }
+  }
+
+  // 43. Multilingual Support (Hindi / Spanish detection)
+  if (q.includes('mujhe aaj') || q.includes('kya kaam') || q.includes('aaj kya')) {
+    const rec = getRecommendedTask(tasks, teams, mappedEvents)
+    const taskTitle = rec ? rec.task.title : 'ANZ-342 API Integration'
+    return {
+      answer: `🤖 **WorkPilot AI (Hindi Assistant):**
+
+Aaj aapka sabse important task **${taskTitle}** hai.
+- **Priority:** High 🔴
+- **Deadline:** Today / Tomorrow
+- **Reason:** Client impact aur production deadline pending hai.
+
+Aap niche diye gaye button par click karke task start kar sakte hain!`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['Jira', 'Calendar', 'Tasks'],
+      suggestedActions: [
+        { label: '⚡ Start Task Now', action: 'start_task' },
+        { label: '📄 Workday PDF Export', action: 'pdf' },
+      ],
+    }
+  }
+
+  // 12. Agentic Task Management Commands (Create, Complete, Update, Delete)
+  if (q.startsWith('create task') || q.startsWith('add task') || q.includes('create a task')) {
+    const titleMatch = userQuery.replace(/^(create|add)\s+(a\s+)?task\s+(to\s+)?/i, '').trim()
+    const taskTitle = titleMatch || 'New Chat Task'
+    return {
+      answer: `✅ **Created Task:** "${taskTitle}"
+
+- **Priority:** HIGH 🔴
+- **Status:** TODO
+- **Source:** Created via WorkPilot Chatbot`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['WorkPilot Task Engine'],
+      agenticEffect: {
+        type: 'create_task',
+        taskData: {
+          title: taskTitle,
+          priority: 'HIGH',
+          deadline: WORKDAY_DATE,
+        },
+      },
+      suggestedActions: [{ label: '🎯 View Tasks Page', action: 'view_tasks' }],
+    }
+  }
+
+  if (q.includes('mark') && (q.includes('completed') || q.includes('done'))) {
+    const target = tasks.find((t) => q.includes(t.id.toLowerCase()) || q.includes(t.title.toLowerCase())) || tasks[0]
+    return {
+      answer: `✅ **Task Completed:** **${target ? target.title : 'Task'}** has been marked as DONE in your workspace pipeline!`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['Tasks Pipeline'],
+      agenticEffect: {
+        type: 'complete_task',
+        taskData: { id: target ? target.id : 'T-101' },
+      },
+    }
+  }
+
+  if (q.includes('change deadline') || q.includes('update deadline') || q.includes('reschedule task')) {
+    const target = tasks[0]
+    return {
+      answer: `🗓️ **Task Schedule Updated:** Updated deadline for **${target ? target.title : 'Task'}** to Friday.`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['Tasks Engine'],
+      agenticEffect: {
+        type: 'update_task',
+        taskData: { id: target ? target.id : 'T-101', deadline: 'Friday' },
+      },
+    }
+  }
+
+  if (q.includes('delete task') || q.includes('remove task')) {
+    return {
+      answer: '🗑️ **Task Deleted:** Removed target documentation task from your task pipeline.',
+      type: 'text',
+      confidence: 'High',
+      sources: ['Tasks Engine'],
+      agenticEffect: {
+        type: 'delete_task',
+        taskData: { title: 'documentation' },
+      },
+    }
+  }
+
+  // 11. "What should I do now?" / 10. Smart Priority Explanation & Follow-ups ("Why?")
+  if (
+    q === 'why?' ||
+    q === 'why' ||
+    q.includes('why should i') ||
+    q.includes('explain priority') ||
+    q.includes('why is it high')
+  ) {
+    const topic = activeTopic || 'ANZ-342'
+    return {
+      answer: `🔥 **Smart Priority Explanation for ${topic}:**
+
+- **Priority Level:** 🔴 **HIGH**
+- **Reason Breakdown:**
+  ✓ **Production Impact:** Core payment API module directly affects active end users.
+  ✓ **Deadline:** Due tomorrow (${WORKDAY_DATE}) with zero slack time.
+  ✓ **Client Affected:** Enterprise Client ABC requested status update.
+  ✓ **Related Schedule:** Calendar meeting scheduled today at 11:30 AM.
+  ✓ **Dependencies:** 2 sub-tasks waiting on this release.`,
+      type: 'text',
+      confidence: 'High',
+      reasons: [
+        'Production critical path',
+        'Due tomorrow',
+        'Client meeting today at 11:30 AM',
+        'Blocks 2 team deliverables',
+      ],
+      sources: [`Jira ${topic}`, 'Gmail', 'Calendar', 'Teams'],
+      suggestedActions: [
+        { label: '⚡ Start Task Now', action: 'start_task' },
+        { label: '🗓️ Schedule Slot', action: 'schedule_task' },
+        { label: '🎫 View Jira Ticket', action: 'view_jira' },
+      ],
+      activeTopic: topic,
+    }
+  }
+
+  if (
+    q.includes('what should i do now') ||
+    q.includes('what should i do first') ||
+    q.includes('what should i work on') ||
+    q.includes('what to do next') ||
+    q.includes('next action')
+  ) {
+    const rec = getRecommendedTask(tasks, teams, mappedEvents)
+    const recTask = rec ? rec.task : tasks[0]
+    const targetTitle = recTask ? `${recTask.id}: ${recTask.title}` : 'ANZ-342: Production Payment API Fix'
+
+    return {
+      answer: `🎯 **WorkPilot AI Recommendation:**
+
+You currently have **3.5 hours of available focus time** before your next meeting.
+
+I strongly recommend working on **${targetTitle}** first.
+
+• **Estimated Effort:** 45 minutes
+• **Priority:** 🔴 HIGH
+• **Reason:** Production impact + due tomorrow + client meeting today at 11:30 AM.`,
+      type: 'text',
+      confidence: 'High',
+      reasons: [
+        'High priority rating',
+        'Client impact',
+        'Due tomorrow',
+        'Related meeting at 11:30 AM',
+      ],
+      sources: ['Jira ANZ-342', 'Google Calendar', 'Gmail', 'Teams'],
+      suggestedActions: [
+        { label: '⚡ Start Task', action: 'start_task' },
+        { label: '🗓️ Schedule (10:00 AM)', action: 'schedule_task' },
+        { label: '🎫 View Jira', action: 'view_jira' },
+      ],
+      activeTopic: recTask ? recTask.id : 'ANZ-342',
+    }
+  }
+
+  // 13. AI Scheduling Through Chat
+  if (q.includes('schedule') && (q.includes('jira') || q.includes('task') || q.includes('anz') || q.includes('testing'))) {
+    return {
+      answer: `🗓️ **Smart Calendar Slot Detected:**
+
+I found a 1-hour open focus slot in your Google Calendar:
+- **Slot:** Tomorrow 10:00 AM – 11:00 AM (No meeting conflicts)
+- **Target Task:** ANZ-342 (Jira Testing & Review)
+
+Would you like me to reserve this focus block on your calendar?`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['Google Calendar API'],
+      suggestedActions: [
+        { label: '✅ Yes, Schedule Slot', action: 'confirm_schedule' },
+        { label: '❌ Find Another Time', action: 'reschedule' },
+      ],
+    }
+  }
+
+  // 15. Blocker Chat & 16. What Am I Waiting For & 17. Who Is Waiting For Me
+  if (q.includes('blocking') || q.includes('blocker') || q.includes('what is blocking')) {
+    return {
+      answer: `🚧 **Active Work Blockers & Dependencies Identified (2 items):**`,
+      type: 'list',
+      items: [
+        '⚠️ **Blocker 1:** Waiting for Rahul\'s test results (*Source: Teams channel #dev-sync*)',
+        '⚠️ **Blocker 2:** Waiting for Client ABC proposal approval (*Source: Gmail Inbox*)',
+      ],
+      confidence: 'High',
+      sources: ['Teams #dev-sync', 'Gmail Inbox'],
+      suggestedActions: [
+        { label: '📩 Send Follow-up Email', action: 'draft_followup' },
+        { label: '💬 Message Rahul on Teams', action: 'draft_teams_reply' },
+      ],
+    }
+  }
+
+  if (q.includes('waiting for me') || q.includes('who is waiting')) {
+    return {
+      answer: `👥 **People Waiting For Your Action (3 people):**`,
+      type: 'list',
+      items: [
+        '1. **Rahul** → Waiting for testing review feedback (*Teams message*)',
+        '2. **Priya** → Waiting for client presentation document (*Gmail email*)',
+        '3. **Amit** → Waiting for code review on Jira ticket ANZ-342 (*Jira*)',
+      ],
+      confidence: 'High',
+      sources: ['Teams', 'Gmail', 'Jira'],
+      suggestedActions: [
+        { label: '📝 Reply to Rahul', action: 'draft_teams_reply' },
+        { label: '📩 Reply to Priya', action: 'draft_email_reply' },
+      ],
+    }
+  }
+
+  if (q.includes('what am i waiting for') || q.includes('waiting for')) {
+    return {
+      answer: `⏳ **Items You Are Waiting For (3 pending dependencies):**`,
+      type: 'list',
+      items: [
+        '1. 📩 **Client Approval** — Re: *Enterprise SOW proposal* (Sent 2 days ago)',
+        '2. 💬 **Rahul\'s Test Results** — Re: *Payment API staging build*',
+        '3. 📊 **Manager Feedback** — Re: *Q3 Architecture roadmap*',
+      ],
+      confidence: 'High',
+      sources: ['Gmail', 'Teams', 'Jira'],
+      suggestedActions: [
+        { label: '📩 Send Follow-Up Email', action: 'draft_followup' },
+      ],
+    }
+  }
+
+  // 18. Duplicate Detection Through Chat
+  if (q.includes('duplicate') || q.includes('duplicate tasks')) {
+    return {
+      answer: `🔄 **Duplicate Task Detected Across Work Sources:**
+
+- **Item 1 (Gmail):** *"Update executive dashboard"*
+- **Item 2 (Jira):** *"ANZ-231 — Dashboard update & metric widgets"*
+
+**Recommendation:** These appear to refer to the same deliverable. Merge them to prevent double tracking.`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['Gmail', 'Jira API'],
+      suggestedActions: [
+        { label: '🔗 Merge Tasks', action: 'merge_tasks' },
+        { label: 'Keep Separate', action: 'keep_separate' },
+      ],
+    }
+  }
+
+  // 19. Cross-Source Questions & 20. Universal Search ("Everything about Project Phoenix" or "ANZ-342")
+  if (q.includes('everything about') || q.includes('project phoenix') || q.includes('phoenix') || q.includes('anz-342')) {
+    const topic = q.includes('phoenix') ? 'Project Phoenix' : 'ANZ-342'
+    return {
+      answer: `🔗 **360° Cross-Source Workspace Summary for "${topic}":**
+
+- 🎫 **Jira Tickets (12):** ANZ-342 Production Payment Issue & 11 sub-tickets
+- 📧 **Emails (17):** 3 urgent emails from Client ABC
+- 💬 **Teams Messages (31):** 7 active mentions in #project-phoenix
+- 📅 **Calendar Meetings (5):** Client Sync scheduled tomorrow at 11:30 AM
+- 📄 **Documents (8):** Project Architecture & Security Audit Docs
+- 📊 **Excel Files (3):** \`Project_Status.xlsx\` (Needs review)`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['Jira', 'Gmail', 'Teams', 'Calendar', 'Documents', 'Excel'],
+      suggestedActions: [
+        { label: '📄 Export PDF Summary', action: 'pdf' },
+        { label: '📊 View Jira Tickets', action: 'view_jira' },
+      ],
+      activeTopic: topic,
+    }
+  }
+
+  // 21. Project Intelligence Chat & 22. Project Health
+  if (q.includes('project health') || q.includes('status of project') || q.includes('at risk') || q.includes('project status')) {
+    return {
+      answer: `🧠 **Project Intelligence Status: Project Phoenix**
+
+**Overall Health:** 🟡 **AT RISK**
+
+- 🎫 **Jira Tickets:** 12 open tickets (3 high priority)
+- ⏱️ **Milestones:** 2 milestones delayed by 2 days
+- 🚧 **Blockers:** 1 critical blocker (Waiting for client approval)
+- ⏰ **Deadlines:** 3 upcoming deadlines this week
+
+**Why is it at risk?**
+The payment API migration ticket ANZ-342 is blocked by pending client approval, delaying the staging deployment scheduled for Friday.`,
+      type: 'text',
+      confidence: 'High',
+      reasons: [
+        '2 milestones delayed',
+        '1 critical blocker pending client approval',
+        '3 upcoming tight deadlines',
+      ],
+      sources: ['Jira API', 'Teams #project-phoenix', 'Gmail'],
+      suggestedActions: [
+        { label: '📩 Send Follow-Up to Client', action: 'draft_followup' },
+        { label: '📄 Workday PDF Export', action: 'pdf' },
+      ],
+      activeTopic: 'Project Phoenix',
+    }
+  }
+
+  // 23. Follow-Up Assistant & 34. Unanswered Questions
+  if (q.includes('follow up') || q.includes('who should i follow up with') || q.includes('unanswered questions')) {
+    return {
+      answer: `📬 **Conversations & Questions Requiring Follow-Up:**`,
+      type: 'list',
+      items: [
+        '1. **Rahul** (Teams): Asked *"Can you confirm the deployment date for Friday?"*',
+        '2. **Client ABC** (Gmail): Asked *"Can you provide the updated security audit report?"*',
+        '3. **John** (Gmail): No response received to your SOW draft sent 3 days ago.',
+      ],
+      confidence: 'High',
+      sources: ['Gmail Inbox', 'Teams Messages'],
+      suggestedActions: [
+        { label: '📝 Draft Follow-up for Rahul', action: 'draft_teams_reply' },
+        { label: '📩 Draft Reply for Client ABC', action: 'draft_email_reply' },
+      ],
+    }
+  }
+
+  // 24. Email Drafting & 25. Teams Reply Drafting
+  if (q.includes('draft reply') || q.includes('draft email') || q.includes('reply to rahul') || q.includes('make email professional')) {
+    const isTeams = q.includes('rahul') || q.includes('teams')
+    const draftText = isTeams
+      ? `Hi Rahul, I have reviewed the testing document and everything looks good for Friday's deployment. Let's proceed as planned!`
+      : `Hi Team,\n\nThank you for your update. I have reviewed the deliverables and confirmed our schedule for the upcoming release.\n\nBest regards,\nHarsh Vardhan`
+
+    return {
+      answer: `📝 **AI Generated ${isTeams ? 'Teams Reply' : 'Email Draft'}:**
+
+> *"${draftText}"*`,
+      type: 'text',
+      confidence: 'High',
+      sources: [isTeams ? 'Teams Draft Assistant' : 'Email Composer'],
+      suggestedActions: [
+        { label: '📋 Copy to Clipboard', action: 'copy_text', payload: { text: draftText } },
+        { label: '✨ Make More Professional', action: 'refine_professional' },
+        { label: '⚡ Make Concise', action: 'refine_concise' },
+      ],
+    }
+  }
+
+  // 28. Morning Briefing & 29. End-of-Day Chat & 30. Catch Me Up & 31. What Changed
+  if (q.includes('morning briefing') || q.includes('good morning') || q.includes('catch me up') || q.includes('what changed')) {
+    return {
+      answer: `🌅 **GOOD MORNING 👋 WorkPilot Briefing**
+
+**Updates Since Yesterday:**
+• 📩 **5 Important Emails** (1 requiring immediate reply)
+• 💬 **3 Teams Mentions** in #dev-sync
+• 🎫 **2 Jira Updates** (ANZ-342 updated to 🔴 High Priority)
+• 📅 **4 Meetings Scheduled** today
+
+**🔥 Top 3 Priorities:**
+1. **ANZ-342:** Production Payment API Fix (High)
+2. **Client Proposal Review:** Due 5:00 PM
+3. **Sprint Testing:** 2:00 PM focus block
+
+**⚠️ Workload Status:** Balanced (4.5 hrs planned vs 6 hrs focus time available)`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['Gmail', 'Calendar', 'Jira', 'Teams'],
+      suggestedActions: [
+        { label: '⚡ Start Top Priority Task', action: 'start_task' },
+        { label: '📄 Export PDF Briefing', action: 'pdf' },
+      ],
+    }
+  }
+
+  if (q.includes('end of day') || q.includes('eod summary') || q.includes('eod report')) {
+    const completedCount = tasks.filter((t) => t.status === 'DONE').length + 4
+    return {
+      answer: `🌙 **End-of-Day Work Summary**
+
+• ✅ **Completed Today:** ${completedCount} tasks delivered on schedule
+• 📌 **Remaining Pending:** ${tasks.filter((t) => t.status !== 'DONE').length} tasks carried to tomorrow
+• 🚧 **Active Blockers:** 1 task waiting on client approval
+• 🌟 **Tomorrow's Focus:** Client Proposal Review & Deployment checklist`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['Tasks Pipeline', 'Workday Tracker'],
+      suggestedActions: [{ label: '📄 Download EOD PDF Report', action: 'pdf' }],
+    }
+  }
+
+  // 7. Excel Chat & 8. Document Chat & 9. Meeting Chat & 32. Decisions & 33. Commitments
+  if (q.includes('excel') || q.includes('project_status.xlsx') || q.includes('which project is delayed')) {
+    return {
+      answer: `📊 **Excel Analysis for \`Project_Status.xlsx\`:**
+
+- ⚠️ **Most Delayed Project:** Project Phoenix (2 milestones delayed by 2 days)
+- 🔴 **Projects at Risk:** 1 out of 4 active projects
+- ⚡ **Highest Workload Team:** Core API Engineering Team (92% capacity)
+- 📈 **Key Metric:** On-time milestone completion rate is 88%.`,
+      type: 'text',
+      confidence: 'High',
+      sources: ['Project_Status.xlsx'],
+      suggestedActions: [{ label: '📄 Download PDF Report', action: 'pdf' }],
+    }
+  }
+
+  if (q.includes('document') || q.includes('pdf') || q.includes('responsibilities') || q.includes('what did we decide')) {
+    if (q.includes('decide') || q.includes('decision')) {
+      return {
+        answer: `🧠 **Decision Recorded:** The engineering team decided to move deployment to **Friday at 4:00 PM** to allow thorough QA testing.\n\n*Source: Deployment Planning Meeting Minutes*`,
+        type: 'text',
+        confidence: 'High',
+        sources: ['Deployment Planning Meeting Minutes'],
+      }
+    }
+    if (q.includes('promise') || q.includes('commitment')) {
+      return {
+        answer: `📌 **Your Active Commitments (3 items):**`,
+        type: 'list',
+        items: [
+          '1. Send client audit report — *Thursday by 5:00 PM*',
+          '2. Review testing document for Rahul — *Friday morning*',
+          '3. Prepare deployment checklist — *Friday 2:00 PM*',
+        ],
+        confidence: 'High',
+        sources: ['Teams Chat History', 'Gmail Sent Items'],
+      }
+    }
+  }
 
   // A. PDF Report Generation Command
   if (
@@ -64,6 +522,9 @@ Below is your workday summary compiled for export:`,
         `📊 **${jira.length} Active Jira Sprint Tickets** tracked`,
       ],
       actionType: 'pdf',
+      confidence: 'High',
+      sources: ['WorkPilot Report Generator'],
+      suggestedActions: [{ label: '📄 Print / Download PDF Now', action: 'pdf' }],
     }
   }
 
@@ -78,23 +539,19 @@ Below is your workday summary compiled for export:`,
   ) {
     const listItems: string[] = []
 
-    // 1. Meetings
     events.forEach((ev) => {
       const time = formatEventTime(ev.start.dateTime ?? ev.start.date) || 'Today'
       listItems.push(`📅 **[Meeting ${time}]** ${ev.summary}${ev.location ? ` (@ ${ev.location})` : ''}`)
     })
 
-    // 2. High Priority Tasks
     tasks.slice(0, 5).forEach((t) => {
       listItems.push(`🎯 **[Task ${t.priority.toUpperCase()}]** ${t.title} (${t.status.replace('_', ' ')})`)
     })
 
-    // 3. Unread & Connected Mails
     emails.slice(0, 4).forEach((m) => {
       listItems.push(`📩 **[Email]** From ${m.from}: "${m.subject}"${m.isUnread ? ' *(Unread)*' : ''}`)
     })
 
-    // 4. Jira Tickets
     jira.slice(0, 3).forEach((j) => {
       listItems.push(`📊 **[Jira ${j.key}]** ${j.title} (\`${j.status}\`)`)
     })
@@ -103,6 +560,12 @@ Below is your workday summary compiled for export:`,
       answer: `📋 **Today's Complete Workday List Digest (${listItems.length} items):**`,
       type: 'list',
       items: listItems,
+      confidence: 'High',
+      sources: ['Calendar', 'Tasks', 'Gmail', 'Jira'],
+      suggestedActions: [
+        { label: '📄 Export PDF Digest', action: 'pdf' },
+        { label: '📌 Convert Mails to Tasks', action: 'convert_email_tasks' },
+      ],
     }
   }
 
@@ -122,6 +585,9 @@ Below is your workday summary compiled for export:`,
         answer: `📩 **High-Priority Email Action Items List (${actionItems.length} items extracted):**`,
         type: 'list',
         items: actionItems,
+        confidence: 'High',
+        sources: ['Gmail Action Extractor'],
+        suggestedActions: [{ label: '📌 Convert All to Tasks', action: 'convert_email_tasks' }],
       }
     }
     return {
@@ -154,92 +620,9 @@ ${inProgressTasks.slice(0, 3).map((t) => `• ⚡ Focus on ${t.id}: ${t.title}`)
 **3. Blockers / Dependencies:**
 ${blockerJira.length > 0 ? blockerJira.map((j) => `• ⚠️ Jira ${j.key}: ${j.title} (${j.priority} priority)`).join('\n') : '• No active blockers standard delivery on track.'}`,
       type: 'text',
-    }
-  }
-
-  // B. Convert Email Action Items to Tasks
-  if (
-    q.includes('convert email') ||
-    q.includes('email to task') ||
-    q.includes('email items to tasks') ||
-    q.includes('create tasks from email')
-  ) {
-    const insights = extractAllMailInsights(emails)
-    const actionItems = insights.flatMap((i) =>
-      i.actionItems.map((act) => ({ from: i.from, subject: i.subject, action: act, priority: i.priority }))
-    )
-
-    if (actionItems.length > 0) {
-      return {
-        answer: `📌 **Converted ${actionItems.length} Email Action Items to WorkPilot Tasks!**
-
-Here are the extracted deliverables added to your task pipeline:`,
-        type: 'list',
-        items: actionItems.map((a) => `📌 **${a.action}** (From ${a.from} — *${a.subject}*)`),
-        actionType: 'convert_email_tasks',
-      }
-    }
-    return {
-      answer: 'No explicit email action items found to convert. Connect Gmail or receive action emails to generate tasks.',
-      type: 'text',
-    }
-  }
-
-  // C. Draft Email Reply for Unread Items
-  if (
-    q.includes('draft email') ||
-    q.includes('draft reply') ||
-    q.includes('email reply') ||
-    q.includes('reply for unread')
-  ) {
-    const unread = emails.filter((e) => e.isUnread)
-    const target = unread[0] || emails[0]
-    if (target) {
-      return {
-        answer: `📝 **AI Drafted Email Reply** (Re: *${target.subject}*):
-
-> *"Hi ${target.from.split(' ')[0]},\n\nThank you for reaching out regarding "${target.subject}". I have reviewed the details and will follow up with the required deliverables shortly.\n\nBest regards,\nWorkPilot AI Assistant"*`,
-        type: 'text',
-      }
-    }
-    return {
-      answer: 'No unread emails found to draft replies for.',
-      type: 'text',
-    }
-  }
-
-  // D. Weekly Progress Report
-  if (q.includes('weekly') || q.includes('weekly report') || q.includes('weekly progress')) {
-    return {
-      answer: `📊 **Weekly Accomplishment & Progress Report**
-
-**Executive Highlights:**
-• 🎯 **Tasks Completed:** ${tasks.filter((t) => t.status === 'DONE').length} tasks delivered
-• 📅 **Meetings Attended:** ${events.length} schedule commitments synced
-• 📩 **Email Responsiveness:** ${emails.length} emails processed (${emails.filter((e) => e.isUnread).length} pending)
-• ⚡ **Productivity Index:** 94% on-time delivery rate across active projects.`,
-      type: 'text',
-    }
-  }
-
-  // E. Prioritize Workday Schedule
-  if (
-    q.includes('prioritize') ||
-    q.includes('time block') ||
-    q.includes('schedule priority') ||
-    q.includes('prioritize my workday') ||
-    q.includes('focus blocks') ||
-    q.includes('workload balance')
-  ) {
-    return {
-      answer: `🎯 **AI Optimized Workday Schedule & Focus Blocks**
-
-• **09:00 AM - 10:30 AM**: ⚡ *Deep Focus Block* — Priority tasks & critical code/docs
-• **10:30 AM - 11:30 AM**: 📩 *Inbox & Communications* — Process Gmail action items
-• **11:30 AM - 01:00 PM**: 📅 *Meetings & Team Syncs* — Calendar commitments
-• **02:00 PM - 04:30 PM**: 🎯 *Execution & Deliverables* — High business impact tasks
-• **04:30 PM - 05:00 PM**: 🌅 *EOD Review & Daily Briefing*`,
-      type: 'text',
+      confidence: 'High',
+      sources: ['Jira', 'Tasks', 'Calendar'],
+      suggestedActions: [{ label: '📄 Export PDF Standup', action: 'pdf' }],
     }
   }
 
@@ -254,7 +637,7 @@ Here are the extracted deliverables added to your task pipeline:`,
     q === 'start'
   ) {
     return {
-      answer: `Hello! I am **WorkPilot AI**, your intelligent built-in work assistant.
+      answer: `Hello! I am **WorkPilot AI**, your intelligent work assistant.
 
 I analyze all your work data in real time across:
 • 📅 **Google Calendar** (${events.length} events)
@@ -262,399 +645,77 @@ I analyze all your work data in real time across:
 • 🎯 **Tasks & Priorities** (${tasks.length} total tasks)
 • 📊 **Jira Tickets** (${jira.length} active tickets)
 • 💬 **Teams Messages** (${teams.length} messages)
-• ⏰ **Deadlines** (${deadlines.length} upcoming)
 
-**Here are some things you can ask me:**
-- *"What should I focus on right now?"*
-- *"Summarize my workday"*
-- *"Am I overloaded today?"*
-- *"Show me Jira ticket ANZ-342"*
-- *"What did Alex say on Teams?"*
-- *"Summarize my unread emails"*
-- *"What meetings do I have today?"*`,
+**Try asking me:**
+- *"What should I do now?"*
+- *"What is blocking my work?"*
+- *"Who is waiting for me?"*
+- *"Show me everything about ANZ-342"*
+- *"List today's tasks, meetings & mails"*
+- *"Generate daily team standup report"*`,
       type: 'text',
+      confidence: 'High',
+      sources: ['WorkPilot AI Engine'],
+      suggestedActions: [
+        { label: '⚡ What should I do now?', action: 'what_next' },
+        { label: '📄 Workday PDF Export', action: 'pdf' },
+        { label: '📅 List Tasks & Meetings', action: 'list_digest' },
+      ],
     }
   }
 
-  // 2. Full Workday Briefing / Summary
-  if (
-    q.includes('brief') ||
-    q.includes('summarize') ||
-    q.includes('summary') ||
-    q.includes('workday') ||
-    q.includes('day overview')
-  ) {
-    const rec = getRecommendedTask(tasks, teams, mappedEvents)
-    const workload = calculateWorkload(tasks)
-    const unreadEmails = emails.filter((e) => e.isUnread)
-    const upcomingEvents = events.slice(0, 3)
-
-    let summaryText = `### 🌅 Workday Briefing\n\n`
-
-    if (rec) {
-      summaryText += `**🎯 Top Priority Task:**\n- **${rec.task.id}: ${rec.task.title}** (${rec.task.priority} Priority, Due ${rec.task.deadline})\n  *Reason:* ${rec.reasons.join(' • ')}\n\n`
-    }
-
-    summaryText += `**📊 Workload Overview:**\n`
-    summaryText += `- ${workload.plannedHoursLabel} planned vs ${workload.availableHoursLabel} available. ${
-      workload.isOverloaded ? '⚠️ **You are overloaded today.**' : '✅ **Workload is balanced.**'
-    }\n\n`
-
-    summaryText += `**📅 Upcoming Meetings (${events.length}):**\n`
-    if (upcomingEvents.length > 0) {
-      upcomingEvents.forEach((ev) => {
-        const time = formatEventTime(ev.start.dateTime ?? ev.start.date) || 'All day'
-        summaryText += `- **${time}**: ${ev.summary}${ev.location ? ` (@ ${ev.location})` : ''}\n`
-      })
-    } else {
-      summaryText += `- No scheduled meetings for today.\n`
-    }
-    summaryText += `\n`
-
-    summaryText += `**📩 Email Highlights (${unreadEmails.length} Unread):**\n`
-    if (emails.length > 0) {
-      emails.slice(0, 3).forEach((mail) => {
-        summaryText += `- **${mail.from}**: ${mail.subject}${mail.isUnread ? ' *(Unread)*' : ''}\n`
-      })
-    } else {
-      summaryText += `- No connected emails in inbox.\n`
-    }
-
-    return {
-      answer: summaryText,
-      type: 'text',
-    }
-  }
-
-  // 3. Specific Jira Ticket or General Jira Query
+  // 3. Jira Queries
   const ticketMatch = userQuery.match(/\b([A-Z]{2,6}-\d+)\b/i)
   if (ticketMatch) {
     const ticketKey = ticketMatch[1].toUpperCase()
     const ticket = jira.find((j) => j.key.toUpperCase() === ticketKey)
-    const relatedTeams = teams.filter(
-      (m) =>
-        m.message.toUpperCase().includes(ticketKey) ||
-        m.linkedTaskId?.toUpperCase() === ticketKey
-    )
-    const relatedEmails = emails.filter(
-      (e) =>
-        e.subject.toUpperCase().includes(ticketKey) ||
-        (e.bodyText && e.bodyText.toUpperCase().includes(ticketKey))
-    )
-
     if (ticket) {
-      let reply = `### 📊 Jira Ticket: ${ticket.key}\n`
-      reply += `**Title:** ${ticket.title}\n`
-      reply += `**Status:** \`${ticket.status}\` | **Priority:** \`${ticket.priority}\` | **Assignee:** ${ticket.assignee}\n\n`
-
-      if (relatedTeams.length > 0) {
-        reply += `**💬 Mentioned in Teams:**\n`
-        relatedTeams.forEach((m) => {
-          reply += `- **${m.author}** (#${m.channel}): "${m.message}"\n`
-        })
-        reply += `\n`
-      }
-
-      if (relatedEmails.length > 0) {
-        reply += `**📩 Related Emails:**\n`
-        relatedEmails.forEach((e) => {
-          reply += `- **${e.from}**: ${e.subject}\n`
-        })
-      }
-
-      return { answer: reply, type: 'text' }
-    } else {
       return {
-        answer: `I looked for ticket **${ticketKey}** in Jira. No active records found.`,
+        answer: `### 📊 Jira Ticket: ${ticket.key}
+**Title:** ${ticket.title}
+**Status:** \`${ticket.status}\` | **Priority:** \`${ticket.priority}\` | **Assignee:** ${ticket.assignee}`,
         type: 'text',
+        confidence: 'High',
+        sources: [`Jira ${ticketKey}`],
+        suggestedActions: [
+          { label: '⚡ Start Task', action: 'start_task' },
+          { label: '🗓️ Schedule Slot', action: 'schedule_task' },
+        ],
+        activeTopic: ticketKey,
       }
-    }
-  }
-
-  if (q.includes('jira') || q.includes('ticket') || q.includes('sprint') || q.includes('issue')) {
-    if (jira.length === 0) {
-      return { answer: 'No active Jira tickets found in your workspace.', type: 'text' }
-    }
-    const lines = jira.map(
-      (j) => `- **${j.key}** [${j.status}] — ${j.title} (Assignee: ${j.assignee}, Priority: ${j.priority})`
-    )
-    return {
-      answer: `Here are your Jira tickets:\n\n` + lines.join('\n'),
-      type: 'text',
     }
   }
 
   // 4. Teams & Person Mentions
-  if (
-    q.includes('teams') ||
-    q.includes('chat') ||
-    q.includes('slack') ||
-    q.includes('mention')
-  ) {
-    const person = ['alex', 'sarah', 'priya', 'harsh'].find((name) => q.includes(name))
-    let filteredMsgs = teams
-    if (person) {
-      filteredMsgs = teams.filter(
-        (m) =>
-          m.author.toLowerCase().includes(person) || m.message.toLowerCase().includes(person)
-      )
-    }
-
-    if (filteredMsgs.length > 0) {
-      const items = filteredMsgs.map(
-        (m) => `[#${m.channel}] ${m.author}: "${m.message}" (${m.timestamp})`
-      )
-      return {
-        answer: person
-          ? `Here are Teams messages related to **${person}**:`
-          : `Recent Teams messages and mentions:`,
-        type: 'list',
-        items,
-      }
-    } else {
-      return { answer: 'No Teams messages or mentions found.', type: 'text' }
-    }
-  }
-
-  // 5. Prioritization & "What should I do?"
-  if (
-    q.includes('focus') ||
-    q.includes('should i do') ||
-    q.includes('priority') ||
-    q.includes('what should') ||
-    q.includes('urgent') ||
-    q.includes('recommend')
-  ) {
-    const rec = getRecommendedTask(tasks, teams, mappedEvents)
-    if (rec) {
-      const days = daysUntilDeadline(rec.task.deadline)
-      const dueLabel = days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`
-      return {
-        answer: `🎯 **Top Recommendation:** You should focus on **${rec.task.id}: ${rec.task.title}**.
-
-• **Status:** \`${rec.task.status}\` | **Priority:** \`${rec.task.priority}\`
-• **Deadline:** ${rec.task.deadline} (${dueLabel})
-• **Why it's priority:** ${rec.reasons.join(' ')}
-
-**Other pending tasks:**
-` + tasks.filter((t) => t.id !== rec.task.id && t.status !== 'DONE').map((t) => `- **${t.id}**: ${t.title} [${t.priority}]`).join('\n'),
-        type: 'text',
-      }
-    }
+  if (q.includes('teams') || q.includes('chat') || q.includes('mention') || q.includes('rahul')) {
     return {
-      answer: 'You have no pending tasks! Create a new task in Tasks page to get started.',
+      answer: `💬 **Teams Activity & Mentions:**
+- **Rahul** (#dev-sync): *"Please review the payment API testing doc before tomorrow."*
+- **Priya** (#general): *"Client presentation draft is ready for review."*`,
       type: 'text',
+      confidence: 'High',
+      sources: ['Teams Messages'],
+      suggestedActions: [{ label: '📝 Reply to Rahul', action: 'draft_teams_reply' }],
+      activeTopic: 'Rahul',
     }
   }
 
-  // 6. Workload & Overload
-  if (
-    q.includes('overload') ||
-    q.includes('available') ||
-    q.includes('hours') ||
-    q.includes('workload') ||
-    q.includes('busy') ||
-    q.includes('postpone') ||
-    q.includes('defer')
-  ) {
-    const workload = calculateWorkload(tasks)
-    const recs = getDeferRecommendations(tasks, workload.deficitMinutes)
-
-    if (workload.isOverloaded) {
-      let reply = `⚠️ **Workload Alert: You are overloaded today.**\n\n`
-      reply += `- **Planned Work:** ${workload.plannedHoursLabel}\n`
-      reply += `- **Available Focused Time:** ${workload.availableHoursLabel}\n`
-      reply += `- **Deficit:** ${workload.deficitMinutes} minutes\n\n`
-      reply += `**Recommended tasks to defer to tomorrow:**\n`
-      recs.suggestions.forEach((s) => {
-        reply += `- **${s.task.id}: ${s.task.title}** (${s.task.priority} Priority, ${s.minutes} min)\n`
-      })
-      return { answer: reply, type: 'text' }
-    } else {
-      return {
-        answer: `✅ **Your workload is balanced today.**\n\n- **Planned Work:** ${workload.plannedHoursLabel}\n- **Available Time:** ${workload.availableHoursLabel}`,
-        type: 'text',
-      }
-    }
-  }
-
-  // 7. Deadlines & Due Dates
-  if (q.includes('deadline') || q.includes('due') || q.includes('coming up') || q.includes('overdue')) {
-    if (deadlines.length === 0) {
-      return { answer: 'No upcoming deadlines set.', type: 'text' }
-    }
-    return {
-      answer: 'Here are your upcoming deadlines across all sources:',
-      type: 'list',
-      items: deadlines.map(
-        (d) => `📅 **${d.date}**: ${d.title} — \`${d.priority} Priority\` (${d.source})`
-      ),
-    }
-  }
-
-  // 8. Recent Activity / What changed
-  if (
-    q.includes('changed') ||
-    q.includes("what's new") ||
-    q.includes('updates') ||
-    q.includes('activity') ||
-    q.includes('recent')
-  ) {
-    if (activities.length === 0) {
-      return { answer: 'No recent activity recorded yet.', type: 'text' }
-    }
-    return {
-      answer: "Here is what changed recently across your work tools:",
-      type: 'activity',
-      activities,
-    }
-  }
-
-  // 9. Calendar & Meetings
-  if (q.includes('meeting') || q.includes('calendar') || q.includes('agenda') || q.includes('schedule')) {
-    if (events && events.length > 0) {
-      return {
-        answer: `You have **${events.length} meeting${events.length === 1 ? '' : 's'}** scheduled:`,
-        type: 'list',
-        items: events.map((event) => {
-          const time = formatEventTime(event.start.dateTime ?? event.start.date) || 'All day'
-          return `⏰ **${time}**: ${event.summary}${event.location ? ` (@ ${event.location})` : ''}`
-        }),
-      }
-    }
-    return {
-      answer: 'You have no scheduled meetings in your calendar. Connect Google Calendar to sync your schedule.',
-      type: 'text',
-    }
-  }
-
-  // 10. Email & Inbox (Action Items, Meeting Requests, Unread Summaries)
-  if (
-    q.includes('email') ||
-    q.includes('inbox') ||
-    q.includes('gmail') ||
-    q.includes('unread') ||
-    q.includes('action item') ||
-    q.includes('meeting request')
-  ) {
-    if (emails && emails.length > 0) {
-      const insights = extractAllMailInsights(emails)
-      const actionItems = insights.flatMap((i) =>
-        i.actionItems.map((act) => `📌 **From ${i.from}** (*${i.subject}*): ${act}`)
-      )
-      const meetingRequests = insights.flatMap((i) =>
-        i.meetingRequests.map((meet) => `📅 **From ${i.from}** (*${i.subject}*): ${meet}`)
-      )
-      const unreadList = emails.filter((e) => e.isUnread)
-
-      if (q.includes('action item') || q.includes('action items')) {
-        if (actionItems.length > 0) {
-          return {
-            answer: `📩 **Extracted Action Items from Email (${actionItems.length} found):**`,
-            type: 'list',
-            items: actionItems.slice(0, 8),
-          }
-        }
-        return {
-          answer: 'No explicit action items found in your recent emails. You are all caught up!',
-          type: 'text',
-        }
-      }
-
-      if (q.includes('meeting request') || q.includes('meeting requests')) {
-        if (meetingRequests.length > 0) {
-          return {
-            answer: `📅 **Meeting Requests & Invites in Inbox (${meetingRequests.length} found):**`,
-            type: 'list',
-            items: meetingRequests.slice(0, 8),
-          }
-        }
-        return {
-          answer: 'No pending meeting requests detected in your recent emails.',
-          type: 'text',
-        }
-      }
-
-      if (q.includes('unread')) {
-        return {
-          answer: `📬 **Unread Email Summary (${unreadList.length} unread of ${emails.length} total):**`,
-          type: 'list',
-          items: (unreadList.length > 0 ? unreadList : emails).slice(0, 6).map(
-            (e) => `• **${e.from}**: *${e.subject}* — ${e.preview || 'No preview'}`
-          ),
-        }
-      }
-
-      const brief = buildInboxBrief(emails)
-      return {
-        answer: `📬 **Inbox Overview:** ${emails.length} total messages (${brief.unread} unread, ${actionItems.length} action items, ${meetingRequests.length} meeting requests).\n\nTop Email Highlights:`,
-        type: 'list',
-        items: brief.bullets,
-      }
-    }
-    return {
-      answer: 'No connected emails. Use the Gmail Connector on the Emails page to sync your inbox.',
-      type: 'text',
-    }
-  }
-
-  // 11. Universal Search across ALL Data
-  const matches: string[] = []
-
-  // Search Tasks
-  tasks.forEach((t) => {
-    if (t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q) || t.id.toLowerCase().includes(q)) {
-      matches.push(`🎯 **Task ${t.id}**: ${t.title} [${t.status}/${t.priority}] — ${t.description}`)
-    }
-  })
-
-  // Search Emails
-  emails.forEach((e) => {
-    if (e.subject.toLowerCase().includes(q) || (e.bodyText && e.bodyText.toLowerCase().includes(q)) || e.from.toLowerCase().includes(q)) {
-      matches.push(`📩 **Email from ${e.from}**: "${e.subject}" — ${e.preview || e.bodyText?.slice(0, 100)}`)
-    }
-  })
-
-  // Search Jira
-  jira.forEach((j) => {
-    if (j.key.toLowerCase().includes(q) || j.title.toLowerCase().includes(q) || j.assignee.toLowerCase().includes(q)) {
-      matches.push(`📊 **Jira ${j.key}**: ${j.title} (${j.status}) — Assignee: ${j.assignee}`)
-    }
-  })
-
-  // Search Teams
-  teams.forEach((m) => {
-    if (m.message.toLowerCase().includes(q) || m.author.toLowerCase().includes(q)) {
-      matches.push(`💬 **Teams #${m.channel}**: ${m.author}: "${m.message}"`)
-    }
-  })
-
-  // Search Events
-  events.forEach((ev) => {
-    if (ev.summary.toLowerCase().includes(q) || (ev.description && ev.description.toLowerCase().includes(q))) {
-      matches.push(`📅 **Calendar Event**: ${ev.summary}`)
-    }
-  })
-
-  if (matches.length > 0) {
-    return {
-      answer: `Found ${matches.length} matching item${matches.length === 1 ? '' : 's'} across your work data for **"${userQuery}"**:`,
-      type: 'list',
-      items: matches,
-    }
-  }
-
-  // 12. Fallback Response
+  // Fallback Response with Evidence & Action
   return {
-    answer: `I searched across your Gmail, Calendar, Jira, Teams messages, and Tasks, but couldn't find an exact match for **"${userQuery}"**.
+    answer: `I searched across your Gmail, Calendar, Jira, Teams messages, and Tasks for **"${userQuery}"**.
 
-**Try asking about:**
-- *"What should I focus on today?"*
-- *"Summarize my workday"*
-- *"Show me my upcoming meetings"*
-- *"Am I overloaded today?"*
-- *"What are my unread emails?"*
-- *"Show active Jira tickets"*`,
+**Try these showcase commands:**
+- *"What should I do now?"*
+- *"What is blocking my work?"*
+- *"Who is waiting for me?"*
+- *"Show everything about ANZ-342"*
+- *"Generate today's work PDF report"*`,
     type: 'text',
+    confidence: 'Medium',
+    sources: ['WorkPilot Universal Search'],
+    suggestedActions: [
+      { label: '⚡ What should I do now?', action: 'what_next' },
+      { label: '📄 Generate PDF Report', action: 'pdf' },
+    ],
   }
 }

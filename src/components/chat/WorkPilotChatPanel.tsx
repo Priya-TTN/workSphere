@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Loader2, Send, FileText } from 'lucide-react'
+import { Loader2, Send, FileText, Copy, Check, RotateCcw, Trash2, ShieldCheck } from 'lucide-react'
 import { AIBadge } from '@/components/ui/AIBadge'
 import { Button } from '@/components/ui/Button'
 import { useWorkPilotChat } from '@/context/WorkPilotChatContext'
@@ -11,8 +11,21 @@ interface WorkPilotChatPanelProps {
 }
 
 export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps) {
-  const { messages, input, setInput, loading, isConfigured, sendMessage, generatePdfReport } = useWorkPilotChat()
+  const {
+    messages,
+    input,
+    setInput,
+    loading,
+    isConfigured,
+    sendMessage,
+    generatePdfReport,
+    clearMessages,
+    regenerateLastMessage,
+    executeAction,
+  } = useWorkPilotChat()
+
   const [showAllPrompts, setShowAllPrompts] = useState(false)
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -21,6 +34,13 @@ export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps)
   }, [messages, loading])
 
   const handleSend = () => void sendMessage(input)
+
+  const handleCopy = (text: string, index: number) => {
+    navigator.clipboard.writeText(text)
+    setCopiedIndex(index)
+    setTimeout(() => setCopiedIndex(null), 2000)
+  }
+
   const prompts = compact
     ? COMPACT_QUICK_PROMPTS
     : showAllPrompts
@@ -29,33 +49,90 @@ export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {/* Top Header Toolbar */}
+      <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2 px-1 text-xs text-slate-500">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-slate-700">WorkPilot Assistant</span>
+          {isConfigured ? (
+            <span className="rounded bg-purple-50 border border-purple-100 px-1.5 py-0.5 text-[10px] text-purple-700">
+              External LLM
+            </span>
+          ) : (
+            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 font-medium">
+              Context-Aware Engine
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={regenerateLastMessage}
+            disabled={loading || messages.length <= 1}
+            className="inline-flex items-center gap-1 hover:text-purple-600 disabled:opacity-40 transition-colors"
+            title="Regenerate last response"
+          >
+            <RotateCcw className="h-3 w-3" />
+            <span>Retry</span>
+          </button>
+          <span className="text-slate-300">|</span>
+          <button
+            type="button"
+            onClick={clearMessages}
+            disabled={messages.length <= 1}
+            className="inline-flex items-center gap-1 hover:text-red-600 disabled:opacity-40 transition-colors"
+            title="Clear chat history"
+          >
+            <Trash2 className="h-3 w-3" />
+            <span>Clear</span>
+          </button>
+        </div>
+      </div>
+
       <div
         ref={listRef}
-        className={cn('min-h-0 flex-1 overflow-y-auto space-y-3', compact ? 'px-3 py-3' : 'mb-4 space-y-4')}
+        className={cn('min-h-0 flex-1 overflow-y-auto space-y-3', compact ? 'px-3 py-2' : 'mb-3 space-y-4')}
       >
         {messages.map((msg, i) => (
           <div key={`${msg.role}-${i}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
               className={cn(
-                'rounded-xl px-3 py-2.5',
-                compact ? 'max-w-[90%]' : 'max-w-[85%] px-4 py-3',
+                'relative group rounded-2xl px-4 py-3',
+                compact ? 'max-w-[92%]' : 'max-w-[85%]',
                 msg.role === 'user'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white border border-slate-200 shadow-sm'
+                  ? 'bg-purple-600 text-white rounded-br-xs'
+                  : 'bg-white border border-slate-200/80 shadow-xs text-slate-800 rounded-bl-xs'
               )}
             >
               {msg.role === 'assistant' && (
-                <div className="mb-1.5">
-                  <AIBadge label={isConfigured ? 'External LLM' : 'Built-in AI'} />
+                <div className="mb-2 flex items-center justify-between gap-2 border-b border-slate-100 pb-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <AIBadge label={isConfigured ? 'External LLM' : 'WorkPilot AI'} />
+                    {msg.confidence && (
+                      <span className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-100">
+                        <ShieldCheck className="h-3 w-3" /> Confidence: {msg.confidence}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(msg.content, i)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
+                    title="Copy response"
+                  >
+                    {copiedIndex === i ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
                 </div>
               )}
+
               <div className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</div>
+
+              {/* Items List */}
               {msg.items && msg.items.length > 0 && (
                 <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-2.5">
                   {msg.items.map((item, index) => (
                     <div
                       key={`${item}-${index}`}
-                      className="flex items-start gap-2 rounded-lg bg-slate-50/80 border border-slate-100 px-3 py-2 text-xs sm:text-sm text-slate-700 font-normal leading-snug"
+                      className="flex items-start gap-2 rounded-xl bg-slate-50/90 border border-slate-100 px-3 py-2 text-xs sm:text-sm text-slate-700 font-normal leading-snug"
                     >
                       <span className="shrink-0 text-slate-400 font-mono text-xs select-none">
                         {index + 1}.
@@ -65,7 +142,54 @@ export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps)
                   ))}
                 </div>
               )}
-              {msg.actionType === 'pdf' && (
+
+              {/* Evidence & Reasons breakdown */}
+              {msg.reasons && msg.reasons.length > 0 && (
+                <div className="mt-3 rounded-xl bg-amber-50/60 border border-amber-200/60 p-2.5 text-xs text-amber-900">
+                  <span className="font-semibold block mb-1">Reason & Priority Evidence:</span>
+                  <ul className="space-y-0.5 pl-3 list-disc">
+                    {msg.reasons.map((r) => (
+                      <li key={r}>{r}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Source Citations */}
+              {msg.sources && msg.sources.length > 0 && (
+                <div className="mt-2.5 flex items-center gap-1.5 flex-wrap text-[11px] text-slate-400">
+                  <span className="font-medium text-slate-500">Sources:</span>
+                  {msg.sources.map((src) => (
+                    <span key={src} className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-600 font-mono text-[10px]">
+                      {src}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Interactive Contextual Action Buttons */}
+              {msg.suggestedActions && msg.suggestedActions.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center gap-2 flex-wrap">
+                  {msg.suggestedActions.map((act) => (
+                    <button
+                      key={act.label}
+                      type="button"
+                      onClick={() => {
+                        if (act.action === 'pdf' || act.action === 'convert_email_tasks' || act.action === 'copy_text' || act.action === 'start_task') {
+                          executeAction(act)
+                        } else {
+                          void sendMessage(act.label)
+                        }
+                      }}
+                      className="rounded-xl border border-purple-200 bg-purple-50/80 px-3 py-1.5 text-xs font-semibold text-purple-700 shadow-2xs hover:bg-purple-600 hover:text-white hover:border-purple-600 transition-all active:scale-95 cursor-pointer"
+                    >
+                      {act.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {msg.actionType === 'pdf' && !msg.suggestedActions && (
                 <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
                   <span className="text-xs font-medium text-slate-500">
                     Ready to export workday report
@@ -86,14 +210,15 @@ export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps)
         {loading && (
           <div className="flex items-center gap-2 text-slate-400 text-sm">
             <Loader2 className="h-4 w-4 animate-spin text-purple-600" />
-            WorkPilot is thinking...
+            WorkPilot is reasoning across your work data...
           </div>
         )}
       </div>
 
+      {/* Suggested Prompts Pill Section */}
       <div className={cn('shrink-0', compact ? 'border-t border-slate-100 px-3 pb-3 pt-2' : '')}>
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
             Suggested Prompts
           </span>
           {!compact && (
@@ -125,7 +250,7 @@ export function WorkPilotChatPanel({ compact = false }: WorkPilotChatPanelProps)
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={compact ? 'Ask about tasks, meetings, mails...' : 'Ask about your tasks, meetings, mails, Jira...'}
+            placeholder={compact ? 'Ask about tasks, meetings, mails...' : 'Ask anything: "What should I do now?", "Show ANZ-342", "Blockers"...'}
             className={cn(
               'flex-1 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-800 focus:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-100 placeholder:text-slate-400',
               compact ? 'py-2.5' : 'py-3'
